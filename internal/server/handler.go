@@ -42,11 +42,9 @@ func NewServer(config Config, manager *RoomManager, limiter *RateLimiter) *http.
 
 	addr := fmt.Sprintf("%s:%s", config.Host, config.Port)
 	return &http.Server{
-		Addr:         addr,
-		Handler:      mux,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:        addr,
+		Handler:     mux,
+		IdleTimeout: 60 * time.Second,
 	}
 }
 
@@ -109,7 +107,6 @@ func handleSPA() http.HandlerFunc {
 func findDistDir() string {
 	candidates := []string{
 		"web/dist",
-		"./web/dist",
 	}
 
 	for _, dir := range candidates {

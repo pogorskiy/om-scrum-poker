@@ -216,14 +216,21 @@ func TestClearRoom(t *testing.T) {
 	r, _ := NewRoom("room1", "Test")
 	r.Join("s1", "Alice")
 	r.Join("s2", "Bob")
+	r.CastVote("s1", "5")
+	r.CastVote("s2", "8")
 
 	r.ClearRoom()
 
-	if len(r.Participants) != 0 {
-		t.Errorf("expected 0 participants, got %d", len(r.Participants))
+	if len(r.Participants) != 2 {
+		t.Errorf("expected 2 participants (kept), got %d", len(r.Participants))
 	}
 	if r.Phase != PhaseVoting {
 		t.Errorf("expected phase %q, got %q", PhaseVoting, r.Phase)
+	}
+	for _, p := range r.Participants {
+		if p.Vote != "" {
+			t.Errorf("expected empty vote after clear, got %q for %s", p.Vote, p.Name)
+		}
 	}
 }
 

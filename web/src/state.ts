@@ -11,13 +11,13 @@ export interface Participant {
 }
 
 export interface VoteResult {
-  votes: Array<{ sessionId: string; userName: string; value: string }>;
-  average: number;
-  median: number;
+  votes: Array<{ sessionId: string; name: string; value: string }>;
+  average: number | null;
+  median: number | null;
   uncertainCount: number;
   totalVoters: number;
   hasConsensus: boolean;
-  spread: number;
+  spread: [number, number] | null;
 }
 
 export interface RoomState {

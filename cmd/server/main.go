@@ -25,6 +25,7 @@ func main() {
 
 	stopGC := manager.StartGC()
 	defer stopGC()
+	defer limiter.Close()
 
 	srv := server.NewServer(config, manager, limiter)
 

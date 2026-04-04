@@ -61,16 +61,27 @@ function handleMessage(event: MessageEvent): void {
   }
 
   switch (msg.type) {
-    case 'room_state':
+    case 'room_state': {
+      // Map vote values onto participants during reveal phase
+      if (msg.payload.phase === 'reveal' && msg.payload.result) {
+        const votesMap = new Map(
+          msg.payload.result.votes.map((v: { sessionId: string; value: string }) => [v.sessionId, v.value])
+        );
+        msg.payload.participants = msg.payload.participants.map((p: Participant) => ({
+          ...p,
+          vote: votesMap.get(p.sessionId),
+        }));
+      }
       roomState.value = msg.payload;
       // Restore selected card if we have a vote
       if (msg.payload.phase === 'voting') {
-        const me = msg.payload.participants.find((p) => p.sessionId === sessionId.value);
+        const me = msg.payload.participants.find((p: Participant) => p.sessionId === sessionId.value);
         if (me && me.vote) {
           selectedCard.value = me.vote;
         }
       }
       break;
+    }
 
     case 'participant_joined': {
       if (!roomState.value) break;
@@ -176,7 +187,11 @@ function handleMessage(event: MessageEvent): void {
         ...roomState.value,
         phase: 'voting',
         result: null,
-        participants: [],
+        participants: roomState.value.participants.map((p) => ({
+          ...p,
+          hasVoted: false,
+          vote: undefined,
+        })),
       };
       addToast('Room cleared');
       break;

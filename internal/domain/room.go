@@ -170,10 +170,12 @@ func (r *Room) NewRound() {
 	r.LastActivity = time.Now()
 }
 
-// ClearRoom removes all participants.
+// ClearRoom resets all votes and the phase, keeping participants connected.
 // Must be called with lock held.
 func (r *Room) ClearRoom() {
-	r.Participants = make(map[string]*Participant)
+	for _, p := range r.Participants {
+		p.Vote = ""
+	}
 	r.Phase = PhaseVoting
 	r.LastActivity = time.Now()
 }

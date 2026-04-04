@@ -18,6 +18,7 @@ type RateLimiter struct {
 	mu      sync.Mutex
 	buckets map[string]*TokenBucket
 	config  RateLimitConfig
+	stop    chan struct{}
 }
 
 // RateLimitConfig holds rate limiter settings.
@@ -39,10 +40,15 @@ func NewRateLimiter(config RateLimitConfig) *RateLimiter {
 	rl := &RateLimiter{
 		buckets: make(map[string]*TokenBucket),
 		config:  config,
+		stop:    make(chan struct{}),
 	}
-	// Start cleanup goroutine.
 	go rl.cleanup()
 	return rl
+}
+
+// Close stops the cleanup goroutine.
+func (rl *RateLimiter) Close() {
+	close(rl.stop)
 }
 
 // AllowRoomCreation checks if the IP can create a room.
@@ -98,15 +104,19 @@ func (rl *RateLimiter) allow(key string, maxTokens, refillRate float64) bool {
 func (rl *RateLimiter) cleanup() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
-	for range ticker.C {
-		rl.mu.Lock()
-		now := time.Now()
-		for key, bucket := range rl.buckets {
-			// Remove buckets that have been full for over 5 minutes.
-			if now.Sub(bucket.lastRefill) > 5*time.Minute {
-				delete(rl.buckets, key)
+	for {
+		select {
+		case <-rl.stop:
+			return
+		case <-ticker.C:
+			rl.mu.Lock()
+			now := time.Now()
+			for key, bucket := range rl.buckets {
+				if now.Sub(bucket.lastRefill) > 5*time.Minute {
+					delete(rl.buckets, key)
+				}
 			}
+			rl.mu.Unlock()
 		}
-		rl.mu.Unlock()
 	}
 }

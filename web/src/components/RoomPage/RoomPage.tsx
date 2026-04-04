@@ -89,11 +89,15 @@ export function RoomPage({ path }: Props) {
         >
           <div class="room__result-stats">
             <div class="room__result-stat">
-              <div class="room__result-value">{state.result.average.toFixed(1)}</div>
+              <div class="room__result-value">
+                {state.result.average !== null ? state.result.average.toFixed(1) : '—'}
+              </div>
               <div class="room__result-label">Average</div>
             </div>
             <div class="room__result-stat">
-              <div class="room__result-value">{state.result.median}</div>
+              <div class="room__result-value">
+                {state.result.median !== null ? state.result.median : '—'}
+              </div>
               <div class="room__result-label">Median</div>
             </div>
             {state.result.hasConsensus && (
