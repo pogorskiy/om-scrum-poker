@@ -1,0 +1,5 @@
+module om-scrum-poker
+
+go 1.22.0
+
+require nhooyr.io/websocket v1.8.17
