@@ -221,16 +221,11 @@ func TestClearRoom(t *testing.T) {
 
 	r.ClearRoom()
 
-	if len(r.Participants) != 2 {
-		t.Errorf("expected 2 participants (kept), got %d", len(r.Participants))
+	if len(r.Participants) != 0 {
+		t.Errorf("expected 0 participants after clear, got %d", len(r.Participants))
 	}
 	if r.Phase != PhaseVoting {
 		t.Errorf("expected phase %q, got %q", PhaseVoting, r.Phase)
-	}
-	for _, p := range r.Participants {
-		if p.Vote != "" {
-			t.Errorf("expected empty vote after clear, got %q for %s", p.Vote, p.Name)
-		}
 	}
 }
 

@@ -307,14 +307,15 @@ func handleClearRoom(client *Client, manager *RoomManager) {
 		return
 	}
 
-	room.Lock()
-	room.ClearRoom()
-	room.Unlock()
-
+	// Broadcast before clearing so all connected clients receive the event.
 	msg, _ := MakeEnvelope("room_cleared", struct{}{})
 	if msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
+
+	room.Lock()
+	room.ClearRoom()
+	room.Unlock()
 }
 
 func handleUpdateName(client *Client, manager *RoomManager, payload json.RawMessage) {

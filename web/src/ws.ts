@@ -181,19 +181,15 @@ function handleMessage(event: MessageEvent): void {
     }
 
     case 'room_cleared': {
-      if (!roomState.value) break;
       selectedCard.value = '';
-      roomState.value = {
-        ...roomState.value,
-        phase: 'voting',
-        result: null,
-        participants: roomState.value.participants.map((p) => ({
-          ...p,
-          hasVoted: false,
-          vote: undefined,
-        })),
-      };
+      roomState.value = null;
       addToast('Room cleared');
+      // Re-join so the server re-creates our participant entry.
+      // Dead clients won't re-join and are effectively removed.
+      send({
+        type: 'join',
+        payload: { sessionId: sessionId.value, userName: userName.value },
+      });
       break;
     }
 
