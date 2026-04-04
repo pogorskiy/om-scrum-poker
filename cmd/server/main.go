@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"om-scrum-poker/internal/server"
+	"om-scrum-poker/web"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 	defer stopGC()
 	defer limiter.Close()
 
-	srv := server.NewServer(config, manager, limiter)
+	srv := server.NewServer(config, manager, limiter, web.DistFS)
 
 	// Graceful shutdown.
 	shutdown := make(chan os.Signal, 1)

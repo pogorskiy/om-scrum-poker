@@ -1,6 +1,7 @@
 package server
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -28,7 +29,9 @@ type HealthResponse struct {
 }
 
 // NewServer creates and configures the HTTP server.
-func NewServer(config Config, manager *RoomManager, limiter *RateLimiter) *http.Server {
+// The embedFS parameter should be the embedded web/dist filesystem; it may
+// be empty (zero value) for development when the frontend is served by Vite.
+func NewServer(config Config, manager *RoomManager, limiter *RateLimiter, embedFS embed.FS) *http.Server {
 	mux := http.NewServeMux()
 
 	// Health check.
@@ -38,7 +41,7 @@ func NewServer(config Config, manager *RoomManager, limiter *RateLimiter) *http.
 	mux.HandleFunc("/ws/", HandleWebSocket(manager, limiter, config.TrustProxy))
 
 	// SPA fallback: serve static files or index.html.
-	mux.HandleFunc("/", handleSPA())
+	mux.HandleFunc("/", handleSPA(embedFS))
 
 	addr := fmt.Sprintf("%s:%s", config.Host, config.Port)
 	return &http.Server{
@@ -67,8 +70,11 @@ func handleHealth(manager *RoomManager) http.HandlerFunc {
 	}
 }
 
-func handleSPA() http.HandlerFunc {
-	// Try to find web/dist directory for static files.
+func handleSPA(embedFS embed.FS) http.HandlerFunc {
+	// Try embedded FS first (production build baked into the binary).
+	embeddedSPA := buildEmbedHandler(embedFS)
+
+	// Fall back to disk-based web/dist (development mode).
 	distDir := findDistDir()
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -77,18 +83,22 @@ func handleSPA() http.HandlerFunc {
 			return
 		}
 
-		// If web/dist exists, serve static files with SPA fallback.
+		// Priority 1: embedded filesystem (self-contained binary).
+		if embeddedSPA != nil {
+			embeddedSPA.ServeHTTP(w, r)
+			return
+		}
+
+		// Priority 2: disk-based web/dist (dev server with go run).
 		if distDir != "" {
 			path := filepath.Join(distDir, filepath.Clean(r.URL.Path))
 
-			// Check if the file exists.
 			info, err := os.Stat(path)
 			if err == nil && !info.IsDir() {
 				http.ServeFile(w, r, path)
 				return
 			}
 
-			// SPA fallback: serve index.html for non-file routes.
 			indexPath := filepath.Join(distDir, "index.html")
 			if _, err := os.Stat(indexPath); err == nil {
 				http.ServeFile(w, r, indexPath)
@@ -96,11 +106,30 @@ func handleSPA() http.HandlerFunc {
 			}
 		}
 
-		// No frontend built yet — serve placeholder.
+		// Priority 3: placeholder when no frontend is available.
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, placeholderHTML)
 	}
+}
+
+// buildEmbedHandler returns a SPA handler backed by the embedded FS,
+// or nil if the embedded FS contains no real content (only .gitkeep).
+func buildEmbedHandler(embedFS embed.FS) http.Handler {
+	// The embed is rooted at "dist" inside the web package FS.
+	sub, err := fs.Sub(embedFS, "dist")
+	if err != nil {
+		return nil
+	}
+
+	// Check if index.html exists in the embedded FS — if not, the embed
+	// only contains .gitkeep and we should fall through to other sources.
+	if _, err := fs.Stat(sub, "index.html"); err != nil {
+		return nil
+	}
+
+	log.Println("Serving frontend from embedded filesystem")
+	return ServeEmbedFS(sub)
 }
 
 // findDistDir looks for web/dist directory relative to the working directory.
