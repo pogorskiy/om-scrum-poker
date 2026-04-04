@@ -1,0 +1,64 @@
+.home {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+}
+
+.home__card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  box-shadow: var(--shadow-card);
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+
+.home__title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.home__subtitle {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xl);
+}
+
+.home__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.home__input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  transition: border-color 150ms;
+}
+
+.home__input:focus {
+  border-color: var(--color-primary);
+}
+
+.home__btn {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 600;
+  transition: background 150ms;
+}
+
+.home__btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}

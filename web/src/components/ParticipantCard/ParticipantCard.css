@@ -1,0 +1,64 @@
+.participant-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  min-height: 44px;
+}
+
+.participant-card--disconnected {
+  opacity: 0.6;
+}
+
+.participant-card--self {
+  border-color: var(--color-primary);
+  border-width: 2px;
+}
+
+.participant-card__status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.participant-card__status--active {
+  background: var(--color-status-active);
+}
+
+.participant-card__status--idle {
+  background: var(--color-status-idle);
+}
+
+.participant-card__status--disconnected {
+  background: var(--color-status-disconnected);
+}
+
+.participant-card__name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.participant-card__vote {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--color-primary);
+  min-width: 24px;
+  text-align: center;
+}
+
+.participant-card__vote--check {
+  color: var(--color-status-active);
+}
+
+.participant-card__vote--empty {
+  color: var(--color-text-secondary);
+}

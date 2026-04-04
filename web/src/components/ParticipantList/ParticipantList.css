@@ -1,0 +1,12 @@
+.participant-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+}
+
+@media (max-width: 639px) {
+  .participant-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

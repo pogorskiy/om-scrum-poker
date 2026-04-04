@@ -1,0 +1,102 @@
+.room {
+  flex: 1;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.room__actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  padding: var(--space-md) 0;
+  flex-wrap: wrap;
+}
+
+.room__action-btn {
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 150ms, color 150ms;
+}
+
+.room__action-btn--primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.room__action-btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.room__action-btn--secondary {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.room__action-btn--secondary:hover {
+  background: #d1d5db;
+}
+
+.room__action-btn--danger {
+  background: transparent;
+  color: var(--color-status-disconnected);
+  border: 1px solid var(--color-status-disconnected);
+}
+
+.room__action-btn--danger:hover {
+  background: var(--color-status-disconnected);
+  color: white;
+}
+
+.room__result {
+  text-align: center;
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+}
+
+.room__result--consensus {
+  background: var(--color-consensus);
+  border-color: var(--color-status-active);
+}
+
+.room__result-stats {
+  display: flex;
+  gap: var(--space-xl);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.room__result-stat {
+  text-align: center;
+}
+
+.room__result-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-primary);
+}
+
+.room__result-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.room__connecting {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+}
