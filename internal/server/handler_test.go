@@ -14,7 +14,7 @@ import (
 func TestHandleHealth_GET(t *testing.T) {
 	rm := NewRoomManager()
 
-	handler := handleHealth(rm)
+	handler := handleHealth(rm, "dev")
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 
@@ -58,7 +58,7 @@ func TestHandleHealth_WithRooms(t *testing.T) {
 	c := fakeClient("r1", rm)
 	rm.RegisterClient("r1", c)
 
-	handler := handleHealth(rm)
+	handler := handleHealth(rm, "dev")
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 
@@ -78,7 +78,7 @@ func TestHandleHealth_WithRooms(t *testing.T) {
 
 func TestHandleHealth_MethodNotAllowed(t *testing.T) {
 	rm := NewRoomManager()
-	handler := handleHealth(rm)
+	handler := handleHealth(rm, "dev")
 
 	methods := []string{http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch}
 	for _, method := range methods {
@@ -284,7 +284,7 @@ func TestHandleHealth_AfterClientDisconnect(t *testing.T) {
 	// Simulate client disconnect by unregistering.
 	rm.UnregisterClient("room-1", c)
 
-	handler := handleHealth(rm)
+	handler := handleHealth(rm, "dev")
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 	handler(w, req)
@@ -312,7 +312,7 @@ func TestHandleHealth_MultipleRoomsMultipleClients(t *testing.T) {
 	rm.RegisterClient("room-1", fakeClient("room-1", rm))
 	rm.RegisterClient("room-2", fakeClient("room-2", rm))
 
-	handler := handleHealth(rm)
+	handler := handleHealth(rm, "dev")
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 	handler(w, req)
@@ -350,5 +350,45 @@ func TestNewServer_IdleTimeout(t *testing.T) {
 
 	if srv.IdleTimeout != 60*time.Second {
 		t.Errorf("IdleTimeout = %v, want %v", srv.IdleTimeout, 60*time.Second)
+	}
+}
+
+func TestHandleHealth_BuildTime(t *testing.T) {
+	rm := NewRoomManager()
+
+	handler := handleHealth(rm, "2024-01-15T14:30:00Z")
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+
+	handler(w, req)
+
+	body, _ := io.ReadAll(w.Result().Body)
+	var hr HealthResponse
+	if err := json.Unmarshal(body, &hr); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	if hr.BuildTime != "2024-01-15T14:30:00Z" {
+		t.Errorf("build_time = %q, want %q", hr.BuildTime, "2024-01-15T14:30:00Z")
+	}
+}
+
+func TestHandleHealth_BuildTimeDefault(t *testing.T) {
+	rm := NewRoomManager()
+
+	handler := handleHealth(rm, "dev")
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+
+	handler(w, req)
+
+	body, _ := io.ReadAll(w.Result().Body)
+	var hr HealthResponse
+	if err := json.Unmarshal(body, &hr); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	if hr.BuildTime != "dev" {
+		t.Errorf("build_time = %q, want %q", hr.BuildTime, "dev")
 	}
 }
