@@ -5,6 +5,7 @@ import { NameEntryModal } from './NameEntryModal';
 // Mock state module
 vi.mock('../../state', () => ({
   setUserName: vi.fn(),
+  userRole: { value: 'voter' },
 }));
 
 import { setUserName } from '../../state';

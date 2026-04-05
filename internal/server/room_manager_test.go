@@ -276,8 +276,8 @@ func TestBuildRoomState_WithParticipants(t *testing.T) {
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 
 	room.Lock()
-	room.Join("sess-b", "Bob")
-	room.Join("sess-a", "Alice")
+	room.Join("sess-b", "Bob", "")
+	room.Join("sess-a", "Alice", "")
 	room.CastVote("sess-a", "5")
 	room.Unlock()
 
@@ -312,7 +312,7 @@ func TestBuildRoomState_RevealPhase(t *testing.T) {
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 
 	room.Lock()
-	room.Join("sess-a", "Alice")
+	room.Join("sess-a", "Alice", "")
 	room.CastVote("sess-a", "5")
 	room.Reveal()
 	room.Unlock()
@@ -424,7 +424,7 @@ func TestUpdatePingTime(t *testing.T) {
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 
 	room.Lock()
-	room.Join("sess-1", "Alice")
+	room.Join("sess-1", "Alice", "")
 	room.Unlock()
 
 	before := time.Now()

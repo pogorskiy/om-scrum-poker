@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
-import { roomState, userName, addToast } from '../../state';
+import { roomState, userName, userRole, myParticipant, addToast } from '../../state';
+import { send } from '../../ws';
 import { EditNameModal } from '../EditNameModal/EditNameModal';
 import './Header.css';
 
@@ -15,6 +16,14 @@ export function Header() {
     );
   }
 
+  function handleToggleRole() {
+    const newRole = myParticipant.value?.role === 'observer' ? 'voter' : 'observer';
+    userRole.value = newRole;
+    send({ type: 'update_role', payload: { role: newRole } });
+  }
+
+  const currentRole = myParticipant.value?.role ?? 'voter';
+
   return (
     <header class="header">
       <div class="header__left">
@@ -29,6 +38,13 @@ export function Header() {
         )}
       </div>
       <div class="header__right">
+        <button
+          class={`header__role-btn${currentRole === 'observer' ? ' header__role-btn--observer' : ''}`}
+          onClick={handleToggleRole}
+          title={currentRole === 'observer' ? 'Switch to voter' : 'Switch to observer'}
+        >
+          {currentRole === 'observer' ? 'Observing' : 'Voting'}
+        </button>
         <span class="header__user-name">{userName.value}</span>
         <button
           class="header__edit-btn"

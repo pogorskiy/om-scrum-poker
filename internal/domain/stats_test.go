@@ -198,3 +198,41 @@ func ptrStr(p *float64) string {
 	}
 	return ""
 }
+
+func TestCalculateResult_IgnoresObservers(t *testing.T) {
+	participants := map[string]*Participant{
+		"s1": {SessionID: "s1", Name: "Alice", Vote: "5", Status: "active", Role: "voter"},
+		"s2": {SessionID: "s2", Name: "Bob", Vote: "8", Status: "active", Role: "voter"},
+		"s3": {SessionID: "s3", Name: "Carol", Vote: "3", Status: "active", Role: "observer"},
+	}
+
+	result := CalculateResult(participants)
+
+	// Carol is an observer, so her vote should be ignored.
+	if result.TotalVoters != 2 {
+		t.Errorf("TotalVoters = %d, want 2 (observer excluded)", result.TotalVoters)
+	}
+	if len(result.Votes) != 2 {
+		t.Errorf("Votes count = %d, want 2", len(result.Votes))
+	}
+	wantAvg := 6.5
+	if result.Average == nil || *result.Average != wantAvg {
+		t.Errorf("Average = %v, want %v", ptrStr(result.Average), wantAvg)
+	}
+}
+
+func TestCalculateResult_AllObservers(t *testing.T) {
+	participants := map[string]*Participant{
+		"s1": {SessionID: "s1", Name: "Alice", Vote: "5", Status: "active", Role: "observer"},
+		"s2": {SessionID: "s2", Name: "Bob", Vote: "8", Status: "active", Role: "observer"},
+	}
+
+	result := CalculateResult(participants)
+
+	if result.TotalVoters != 0 {
+		t.Errorf("TotalVoters = %d, want 0 (all observers)", result.TotalVoters)
+	}
+	if result.Average != nil {
+		t.Errorf("Average should be nil when all participants are observers")
+	}
+}

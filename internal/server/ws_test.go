@@ -99,7 +99,7 @@ func TestHandleUpdateName_EmptyUserName(t *testing.T) {
 	rm := NewRoomManager()
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
-	room.Join("sess-1", "Alice")
+	room.Join("sess-1", "Alice", "")
 	room.Unlock()
 
 	c := fakeClient("room-1", rm)
@@ -124,8 +124,8 @@ func TestHandleUpdateName_Success_BroadcastsToAllClients(t *testing.T) {
 	rm := NewRoomManager()
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
-	room.Join("sess-1", "Alice")
-	room.Join("sess-2", "Bob")
+	room.Join("sess-1", "Alice", "")
+	room.Join("sess-2", "Bob", "")
 	room.Unlock()
 
 	c1 := fakeClient("room-1", rm)
@@ -161,7 +161,7 @@ func TestHandleUpdateName_Success_UpdatesDomainModel(t *testing.T) {
 	rm := NewRoomManager()
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
-	room.Join("sess-1", "Alice")
+	room.Join("sess-1", "Alice", "")
 	room.Unlock()
 
 	c := fakeClient("room-1", rm)
@@ -210,7 +210,7 @@ func TestHandleUpdateName_NoExtraMessagesOnError(t *testing.T) {
 	rm := NewRoomManager()
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
-	room.Join("sess-1", "Alice")
+	room.Join("sess-1", "Alice", "")
 	room.Unlock()
 
 	c1 := fakeClient("room-1", rm)
@@ -240,8 +240,8 @@ func TestHandleLeave_RemovesParticipant(t *testing.T) {
 	rm := NewRoomManager()
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
-	room.Join("sess-1", "Alice")
-	room.Join("sess-2", "Bob")
+	room.Join("sess-1", "Alice", "")
+	room.Join("sess-2", "Bob", "")
 	room.Unlock()
 
 	c1 := fakeClient("room-1", rm)
@@ -280,7 +280,7 @@ func TestHandleLeave_NotJoined(t *testing.T) {
 	rm := NewRoomManager()
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
-	room.Join("sess-2", "Bob")
+	room.Join("sess-2", "Bob", "")
 	room.Unlock()
 
 	c := fakeClient("room-1", rm)
@@ -342,7 +342,7 @@ func TestHandleJoin_Rejoin_RestoresActiveStatus(t *testing.T) {
 
 	// First join.
 	room.Lock()
-	room.Join(sid1, "Alice")
+	room.Join(sid1, "Alice", "")
 	room.Unlock()
 
 	// Simulate disconnect by marking participant as disconnected.
@@ -398,7 +398,7 @@ func TestHandleJoin_Rejoin_PreservesVote(t *testing.T) {
 
 	// Join and cast a vote.
 	room.Lock()
-	room.Join(sid1, "Alice")
+	room.Join(sid1, "Alice", "")
 	room.CastVote(sid1, "5")
 	room.Unlock()
 
@@ -434,8 +434,8 @@ func TestHandleJoin_Rejoin_SendsFullRoomState(t *testing.T) {
 
 	// Set up existing participants.
 	room.Lock()
-	room.Join(sid1, "Alice")
-	room.Join(sid2, "Bob")
+	room.Join(sid1, "Alice", "")
+	room.Join(sid2, "Bob", "")
 	room.CastVote(sid2, "8")
 	room.Participants[sid1].Status = "disconnected"
 	room.Unlock()
@@ -520,7 +520,7 @@ func TestHandlePresence_InvalidStatus(t *testing.T) {
 	rm := NewRoomManager()
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
-	room.Join("sess-1", "Alice")
+	room.Join("sess-1", "Alice", "")
 	room.Unlock()
 
 	c := fakeClient("room-1", rm)
@@ -547,7 +547,7 @@ func TestDispatch_LeaveEvent(t *testing.T) {
 	rm := NewRoomManager()
 	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
-	room.Join("sess-1", "Alice")
+	room.Join("sess-1", "Alice", "")
 	room.Unlock()
 
 	c := fakeClient("room-1", rm)
@@ -823,5 +823,199 @@ func TestHandleJoin_CreatedByOnlySetForFirstJoiner(t *testing.T) {
 	}
 	if state.CreatedBy != "Alice" {
 		t.Errorf("expected createdBy %q (first joiner), got %q", "Alice", state.CreatedBy)
+	}
+}
+
+// --- Observer / Role tests ---
+
+func TestHandleUpdateRole_NotJoined(t *testing.T) {
+	rm := NewRoomManager()
+	c := fakeClient("room-1", rm)
+
+	payload, _ := json.Marshal(UpdateRolePayload{Role: "observer"})
+	handleUpdateRole(c, rm, payload)
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "error" {
+		t.Fatalf("expected error, got %q", env.Type)
+	}
+	var errPayload ErrorPayload
+	json.Unmarshal(env.Payload, &errPayload)
+	if errPayload.Code != "invalid_message" {
+		t.Errorf("expected error code %q, got %q", "invalid_message", errPayload.Code)
+	}
+}
+
+func TestHandleUpdateRole_RoomNotFound(t *testing.T) {
+	rm := NewRoomManager()
+	c := fakeClient("nonexistent", rm)
+	c.SetSessionID("sess-1")
+
+	payload, _ := json.Marshal(UpdateRolePayload{Role: "observer"})
+	handleUpdateRole(c, rm, payload)
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "error" {
+		t.Fatalf("expected error, got %q", env.Type)
+	}
+	var errPayload ErrorPayload
+	json.Unmarshal(env.Payload, &errPayload)
+	if errPayload.Code != "room_not_found" {
+		t.Errorf("expected error code %q, got %q", "room_not_found", errPayload.Code)
+	}
+}
+
+func TestHandleUpdateRole_InvalidPayload(t *testing.T) {
+	rm := NewRoomManager()
+	rm.GetOrCreateRoom("room-1", "Test", "")
+	c := fakeClient("room-1", rm)
+	c.SetSessionID("sess-1")
+
+	handleUpdateRole(c, rm, json.RawMessage(`{invalid`))
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "error" {
+		t.Fatalf("expected error, got %q", env.Type)
+	}
+}
+
+func TestHandleUpdateRole_InvalidRole(t *testing.T) {
+	rm := NewRoomManager()
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
+	room.Lock()
+	room.Join("sess-1", "Alice", "")
+	room.Unlock()
+
+	c := fakeClient("room-1", rm)
+	c.SetSessionID("sess-1")
+	rm.RegisterClient("room-1", c)
+
+	payload, _ := json.Marshal(UpdateRolePayload{Role: "admin"})
+	handleUpdateRole(c, rm, payload)
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "error" {
+		t.Fatalf("expected error, got %q", env.Type)
+	}
+}
+
+func TestHandleUpdateRole_Success_BroadcastsToAll(t *testing.T) {
+	rm := NewRoomManager()
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
+	room.Lock()
+	room.Join("sess-1", "Alice", "")
+	room.Join("sess-2", "Bob", "")
+	room.Unlock()
+
+	c1 := fakeClient("room-1", rm)
+	c1.SetSessionID("sess-1")
+	c2 := fakeClient("room-1", rm)
+	c2.SetSessionID("sess-2")
+	rm.RegisterClient("room-1", c1)
+	rm.RegisterClient("room-1", c2)
+
+	payload, _ := json.Marshal(UpdateRolePayload{Role: "observer"})
+	handleUpdateRole(c1, rm, payload)
+
+	// Both clients should receive role_updated.
+	for _, c := range []*Client{c1, c2} {
+		env := recvMessage(t, c, 100*time.Millisecond)
+		if env.Type != "role_updated" {
+			t.Fatalf("expected role_updated, got %q", env.Type)
+		}
+		var rolePayload RoleUpdatedPayload
+		json.Unmarshal(env.Payload, &rolePayload)
+		if rolePayload.SessionID != "sess-1" {
+			t.Errorf("expected sessionId %q, got %q", "sess-1", rolePayload.SessionID)
+		}
+		if rolePayload.Role != "observer" {
+			t.Errorf("expected role %q, got %q", "observer", rolePayload.Role)
+		}
+	}
+
+	// Verify domain model.
+	room.Lock()
+	role := room.Participants["sess-1"].Role
+	room.Unlock()
+	if role != "observer" {
+		t.Errorf("expected role %q in domain, got %q", "observer", role)
+	}
+}
+
+func TestHandleJoin_WithObserverRole(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+
+	const sid = "abcdef0123456789abcdef0123456789"
+	c := fakeClient("room-1", rm)
+	payload, _ := json.Marshal(JoinPayload{
+		SessionID: sid,
+		UserName:  "Alice",
+		Role:      "observer",
+	})
+	handleJoin(c, rm, limiter, "127.0.0.1", payload)
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "room_state" {
+		t.Fatalf("expected room_state, got %q", env.Type)
+	}
+
+	var state RoomStatePayload
+	json.Unmarshal(env.Payload, &state)
+
+	if len(state.Participants) != 1 {
+		t.Fatalf("expected 1 participant, got %d", len(state.Participants))
+	}
+	if state.Participants[0].Role != "observer" {
+		t.Errorf("expected role %q, got %q", "observer", state.Participants[0].Role)
+	}
+}
+
+func TestHandleJoin_DefaultVoterRole(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+
+	const sid = "abcdef0123456789abcdef0123456789"
+	c := fakeClient("room-1", rm)
+	payload, _ := json.Marshal(JoinPayload{
+		SessionID: sid,
+		UserName:  "Alice",
+	})
+	handleJoin(c, rm, limiter, "127.0.0.1", payload)
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "room_state" {
+		t.Fatalf("expected room_state, got %q", env.Type)
+	}
+
+	var state RoomStatePayload
+	json.Unmarshal(env.Payload, &state)
+
+	if len(state.Participants) != 1 {
+		t.Fatalf("expected 1 participant, got %d", len(state.Participants))
+	}
+	if state.Participants[0].Role != "voter" {
+		t.Errorf("expected role %q, got %q", "voter", state.Participants[0].Role)
+	}
+}
+
+func TestDispatch_UpdateRoleEvent(t *testing.T) {
+	rm := NewRoomManager()
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
+	room.Lock()
+	room.Join("sess-1", "Alice", "")
+	room.Unlock()
+
+	c := fakeClient("room-1", rm)
+	c.SetSessionID("sess-1")
+	rm.RegisterClient("room-1", c)
+
+	payload, _ := json.Marshal(UpdateRolePayload{Role: "observer"})
+	env := &Envelope{Type: "update_role", Payload: payload}
+	dispatch(context.Background(), c, rm, NewRateLimiter(DefaultRateLimitConfig()), "127.0.0.1", env)
+
+	msg := recvMessage(t, c, 100*time.Millisecond)
+	if msg.Type != "role_updated" {
+		t.Fatalf("expected role_updated, got %q", msg.Type)
 	}
 }

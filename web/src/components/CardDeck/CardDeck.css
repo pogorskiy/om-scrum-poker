@@ -11,6 +11,15 @@
   pointer-events: none;
 }
 
+.card-deck--observer {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-lg) 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
 @media (max-width: 639px) {
   .card-deck {
     display: grid;

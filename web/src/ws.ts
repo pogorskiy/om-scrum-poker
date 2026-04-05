@@ -4,6 +4,7 @@ import {
   sessionId,
   userName,
   selectedCard,
+  userRole,
   addToast,
   reconnectInfo,
   type ClientMessage,
@@ -110,6 +111,7 @@ function handleMessage(event: MessageEvent): void {
           userName: msg.payload.userName,
           status: msg.payload.status as Participant['status'],
           hasVoted: false,
+          role: (msg.payload.role as Participant['role']) ?? 'voter',
         };
         roomState.value = {
           ...roomState.value,
@@ -205,7 +207,7 @@ function handleMessage(event: MessageEvent): void {
       // The server will send a fresh room_state after our join.
       send({
         type: 'join',
-        payload: { sessionId: sessionId.value, userName: userName.value, roomName: generateRoomName(currentRoomId) },
+        payload: { sessionId: sessionId.value, userName: userName.value, roomName: generateRoomName(currentRoomId), role: userRole.value },
       });
       break;
     }
@@ -230,6 +232,19 @@ function handleMessage(event: MessageEvent): void {
         participants: roomState.value.participants.map((p) =>
           p.sessionId === msg.payload.sessionId
             ? { ...p, userName: msg.payload.userName }
+            : p
+        ),
+      };
+      break;
+    }
+
+    case 'role_updated': {
+      if (!roomState.value) break;
+      roomState.value = {
+        ...roomState.value,
+        participants: roomState.value.participants.map((p) =>
+          p.sessionId === msg.payload.sessionId
+            ? { ...p, role: msg.payload.role as Participant['role'] }
             : p
         ),
       };
@@ -302,7 +317,7 @@ export function connect(roomId: string): void {
     const roomName = generateRoomName(currentRoomId);
     send({
       type: 'join',
-      payload: { sessionId: sessionId.value, userName: userName.value, roomName },
+      payload: { sessionId: sessionId.value, userName: userName.value, roomName, role: userRole.value },
     });
 
     flushQueue();

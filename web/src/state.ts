@@ -8,6 +8,7 @@ export interface Participant {
   status: 'active' | 'idle' | 'disconnected';
   hasVoted: boolean;
   vote?: string;
+  role: 'voter' | 'observer';
 }
 
 export interface VoteResult {
@@ -38,7 +39,7 @@ export interface Toast {
 // Server message types (discriminated union)
 export type ServerMessage =
   | { type: 'room_state'; payload: RoomState }
-  | { type: 'participant_joined'; payload: { sessionId: string; userName: string; status: string } }
+  | { type: 'participant_joined'; payload: { sessionId: string; userName: string; status: string; role?: string } }
   | { type: 'participant_left'; payload: { sessionId: string } }
   | { type: 'vote_cast'; payload: { sessionId: string } }
   | { type: 'vote_retracted'; payload: { sessionId: string } }
@@ -47,17 +48,19 @@ export type ServerMessage =
   | { type: 'room_cleared'; payload: Record<string, never> }
   | { type: 'presence_changed'; payload: { sessionId: string; status: string } }
   | { type: 'name_updated'; payload: { sessionId: string; userName: string } }
+  | { type: 'role_updated'; payload: { sessionId: string; role: string } }
   | { type: 'error'; payload: { code: string; message: string } };
 
 // Client message types
 export type ClientMessage =
-  | { type: 'join'; payload: { sessionId: string; userName: string; roomName?: string } }
+  | { type: 'join'; payload: { sessionId: string; userName: string; roomName?: string; role?: string } }
   | { type: 'vote'; payload: { value: string } }
   | { type: 'reveal'; payload: Record<string, never> }
   | { type: 'new_round'; payload: Record<string, never> }
   | { type: 'clear_room'; payload: Record<string, never> }
   | { type: 'update_name'; payload: { userName: string } }
   | { type: 'presence'; payload: { status: string } }
+  | { type: 'update_role'; payload: { role: string } }
   | { type: 'leave'; payload: Record<string, never> };
 
 // --- localStorage helpers ---
@@ -109,6 +112,7 @@ export const connectionStatus = signal<'connecting' | 'connected' | 'disconnecte
 export const userName = signal<string>(safeGet('om-poker-name'));
 export const sessionId = signal<string>(getOrCreateSessionId());
 export const selectedCard = signal<string>('');
+export const userRole = signal<'voter' | 'observer'>('voter');
 export const toasts = signal<Toast[]>([]);
 export const currentPath = signal<string>(window.location.pathname);
 
@@ -122,9 +126,11 @@ export const myParticipant = computed(() =>
 
 export const voteCount = computed(() => {
   if (!roomState.value) return { voted: 0, total: 0 };
-  const active = roomState.value.participants.filter((p) => p.status !== 'disconnected');
-  const voted = active.filter((p) => p.hasVoted).length;
-  return { voted, total: active.length };
+  const voters = roomState.value.participants.filter(
+    (p) => p.status !== 'disconnected' && p.role !== 'observer'
+  );
+  const voted = voters.filter((p) => p.hasVoted).length;
+  return { voted, total: voters.length };
 });
 
 // --- Actions ---

@@ -224,6 +224,7 @@ func (rm *RoomManager) BuildRoomState(room *domain.Room) RoomStatePayload {
 			UserName:  p.Name,
 			Status:    p.Status,
 			HasVoted:  p.Vote != "",
+			Role:      p.Role,
 		})
 	}
 	// Sort for deterministic output.

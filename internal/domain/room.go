@@ -47,6 +47,7 @@ type Participant struct {
 	Name      string
 	Vote      VoteValue
 	Status    string // "active", "idle", "disconnected"
+	Role      string // "voter" or "observer"
 	LastPing  time.Time
 }
 
@@ -109,20 +110,32 @@ func (r *Room) Lock() { r.mu.Lock() }
 func (r *Room) Unlock() { r.mu.Unlock() }
 
 // Join adds or re-joins a participant. Returns (participant, isNew).
+// Role must be "voter" or "observer"; empty defaults to "voter".
 // Must be called with lock held.
-func (r *Room) Join(sessionID, name string) (*Participant, bool, error) {
+func (r *Room) Join(sessionID, name, role string) (*Participant, bool, error) {
 	if name == "" {
 		return nil, false, fmt.Errorf("invalid_name: name cannot be empty")
 	}
 	if len(name) > MaxParticipantName {
 		name = name[:MaxParticipantName]
 	}
+	if role == "" {
+		role = "voter"
+	}
+	if role != "voter" && role != "observer" {
+		return nil, false, fmt.Errorf("invalid_role: %q is not a valid role", role)
+	}
 
 	if p, ok := r.Participants[sessionID]; ok {
-		// Rejoin — restore and update name if changed.
+		// Rejoin — restore and update name/role if changed.
 		p.Name = name
+		p.Role = role
 		p.Status = "active"
 		p.LastPing = time.Now()
+		// Clear vote when switching to observer on rejoin.
+		if role == "observer" {
+			p.Vote = ""
+		}
 		r.TouchActivity()
 		return p, false, nil
 	}
@@ -136,6 +149,7 @@ func (r *Room) Join(sessionID, name string) (*Participant, bool, error) {
 		Name:      name,
 		Vote:      "",
 		Status:    "active",
+		Role:      role,
 		LastPing:  time.Now(),
 	}
 	r.Participants[sessionID] = p
@@ -154,6 +168,25 @@ func (r *Room) Leave(sessionID string) bool {
 	return true
 }
 
+// UpdateRole changes a participant's role.
+// Must be called with lock held.
+func (r *Room) UpdateRole(sessionID, role string) error {
+	if role != "voter" && role != "observer" {
+		return fmt.Errorf("invalid_role: %q is not a valid role", role)
+	}
+	p, ok := r.Participants[sessionID]
+	if !ok {
+		return fmt.Errorf("room_not_found: participant not in room")
+	}
+	p.Role = role
+	// Clear vote when switching to observer.
+	if role == "observer" {
+		p.Vote = ""
+	}
+	r.TouchActivity()
+	return nil
+}
+
 // CastVote sets a participant's vote. Empty string retracts.
 // Must be called with lock held.
 func (r *Room) CastVote(sessionID string, value VoteValue) error {
@@ -166,6 +199,9 @@ func (r *Room) CastVote(sessionID string, value VoteValue) error {
 	p, ok := r.Participants[sessionID]
 	if !ok {
 		return fmt.Errorf("room_not_found: participant not in room")
+	}
+	if p.Role == "observer" {
+		return fmt.Errorf("invalid_vote: observers cannot vote")
 	}
 	p.Vote = value
 	r.TouchActivity()

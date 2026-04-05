@@ -19,6 +19,7 @@ type JoinPayload struct {
 	SessionID string `json:"sessionId"`
 	UserName  string `json:"userName"`
 	RoomName  string `json:"roomName,omitempty"`
+	Role      string `json:"role,omitempty"`
 }
 
 type VotePayload struct {
@@ -40,6 +41,7 @@ type ParticipantInfo struct {
 	UserName  string `json:"userName"`
 	Status    string `json:"status"`
 	HasVoted  bool   `json:"hasVoted"`
+	Role      string `json:"role"`
 }
 
 type RoomStatePayload struct {
@@ -55,6 +57,7 @@ type ParticipantJoinedPayload struct {
 	SessionID string `json:"sessionId"`
 	UserName  string `json:"userName"`
 	Status    string `json:"status"`
+	Role      string `json:"role"`
 }
 
 type ParticipantLeftPayload struct {
@@ -77,6 +80,15 @@ type PresenceChangedPayload struct {
 type NameUpdatedPayload struct {
 	SessionID string `json:"sessionId"`
 	UserName  string `json:"userName"`
+}
+
+type UpdateRolePayload struct {
+	Role string `json:"role"`
+}
+
+type RoleUpdatedPayload struct {
+	SessionID string `json:"sessionId"`
+	Role      string `json:"role"`
 }
 
 type ErrorPayload struct {

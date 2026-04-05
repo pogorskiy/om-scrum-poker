@@ -1,4 +1,4 @@
-import { selectedCard, isRevealed, connectionStatus } from '../../state';
+import { selectedCard, isRevealed, connectionStatus, myParticipant } from '../../state';
 import { send } from '../../ws';
 import { Card } from '../Card/Card';
 import './CardDeck.css';
@@ -6,6 +6,12 @@ import './CardDeck.css';
 const CARD_VALUES = ['?', '0', '0.5', '1', '2', '3', '5', '8', '13', '20', '40', '100'];
 
 export function CardDeck() {
+  const isObserver = myParticipant.value?.role === 'observer';
+
+  if (isObserver) {
+    return <div class="card-deck card-deck--observer">Observing — you are not voting</div>;
+  }
+
   const current = selectedCard.value;
   const disabled = isRevealed.value;
   const offline = connectionStatus.value !== 'connected';

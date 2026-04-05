@@ -56,7 +56,7 @@ func TestJoin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, isNew, err := r.Join(tt.sessionID, tt.userName)
+			p, isNew, err := r.Join(tt.sessionID, tt.userName, "")
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("Join() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -78,12 +78,12 @@ func TestJoin(t *testing.T) {
 
 func TestJoinRejoinRestoresStatus(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	// Simulate disconnect.
 	r.Participants["s1"].Status = "disconnected"
 
-	p, isNew, err := r.Join("s1", "Alice")
+	p, isNew, err := r.Join("s1", "Alice", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,12 +98,12 @@ func TestJoinRejoinRestoresStatus(t *testing.T) {
 func TestJoinRoomFull(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
 	for i := 0; i < MaxParticipants; i++ {
-		_, _, err := r.Join(string(rune('A'+i))+"id", "User")
+		_, _, err := r.Join(string(rune('A'+i))+"id", "User", "")
 		if err != nil {
 			t.Fatalf("unexpected error filling room: %v", err)
 		}
 	}
-	_, _, err := r.Join("overflow", "Overflow")
+	_, _, err := r.Join("overflow", "Overflow", "")
 	if err == nil {
 		t.Fatal("expected room_full error")
 	}
@@ -111,7 +111,7 @@ func TestJoinRoomFull(t *testing.T) {
 
 func TestLeave(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	if !r.Leave("s1") {
 		t.Error("expected Leave to return true for existing participant")
@@ -126,7 +126,7 @@ func TestLeave(t *testing.T) {
 
 func TestCastVote(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	tests := []struct {
 		name    string
@@ -152,7 +152,7 @@ func TestCastVote(t *testing.T) {
 
 func TestCastVoteDuringReveal(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 	r.CastVote("s1", "5")
 	r.Reveal()
 
@@ -172,7 +172,7 @@ func TestCastVoteNonExistentParticipant(t *testing.T) {
 
 func TestReveal(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 	r.CastVote("s1", "5")
 
 	result, err := r.Reveal()
@@ -195,8 +195,8 @@ func TestReveal(t *testing.T) {
 
 func TestNewRound(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
-	r.Join("s2", "Bob")
+	r.Join("s1", "Alice", "")
+	r.Join("s2", "Bob", "")
 	r.CastVote("s1", "5")
 	r.CastVote("s2", "8")
 	r.Reveal()
@@ -215,8 +215,8 @@ func TestNewRound(t *testing.T) {
 
 func TestClearRoom(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
-	r.Join("s2", "Bob")
+	r.Join("s1", "Alice", "")
+	r.Join("s2", "Bob", "")
 	r.CastVote("s1", "5")
 	r.CastVote("s2", "8")
 
@@ -232,7 +232,7 @@ func TestClearRoom(t *testing.T) {
 
 func TestUpdateName(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	tests := []struct {
 		name      string
@@ -257,7 +257,7 @@ func TestUpdateName(t *testing.T) {
 
 func TestUpdateName_Success(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	err := r.UpdateName("s1", "Bob")
 	if err != nil {
@@ -270,7 +270,7 @@ func TestUpdateName_Success(t *testing.T) {
 
 func TestUpdateName_LongName(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	longName := "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678" // 34 chars, exceeds MaxParticipantName (30)
 	err := r.UpdateName("s1", longName)
@@ -288,7 +288,7 @@ func TestUpdateName_LongName(t *testing.T) {
 
 func TestUpdateName_UpdatesLastActivity(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	before := r.GetLastActivity()
 	time.Sleep(1 * time.Millisecond)
@@ -304,7 +304,7 @@ func TestUpdateName_UpdatesLastActivity(t *testing.T) {
 
 func TestUpdatePresence(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	tests := []struct {
 		name      string
@@ -330,7 +330,7 @@ func TestUpdatePresence(t *testing.T) {
 
 func TestHasVoted(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	if r.HasVoted("s1") {
 		t.Error("expected no vote initially")
@@ -350,9 +350,9 @@ func TestHasVoted(t *testing.T) {
 
 func TestActiveConnections(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
-	r.Join("s2", "Bob")
-	r.Join("s3", "Charlie")
+	r.Join("s1", "Alice", "")
+	r.Join("s2", "Bob", "")
+	r.Join("s3", "Charlie", "")
 
 	if got := r.ActiveConnections(); got != 3 {
 		t.Errorf("expected 3 active, got %d", got)
@@ -407,20 +407,20 @@ func TestSetLastActivity(t *testing.T) {
 
 func TestAllOperationsUpdateLastActivity(t *testing.T) {
 	r, _ := NewRoom("room1", "Test", "")
-	r.Join("s1", "Alice")
+	r.Join("s1", "Alice", "")
 
 	ops := []struct {
 		name string
 		fn   func()
 	}{
-		{"Join", func() { r.Join("s2", "Bob") }},
+		{"Join", func() { r.Join("s2", "Bob", "") }},
 		{"Leave", func() { r.Leave("s2") }},
 		{"CastVote", func() { r.CastVote("s1", "5") }},
 		{"Reveal", func() { r.Reveal() }},
 		{"NewRound", func() { r.NewRound() }},
 		{"ClearRoom", func() {
 			r.ClearRoom()
-			r.Join("s1", "Alice") // re-join for subsequent ops
+			r.Join("s1", "Alice", "") // re-join for subsequent ops
 		}},
 		{"UpdateName", func() { r.UpdateName("s1", "Alicia") }},
 		{"UpdatePresence", func() { r.UpdatePresence("s1", "idle") }},
@@ -434,5 +434,121 @@ func TestAllOperationsUpdateLastActivity(t *testing.T) {
 		if !after.After(before) {
 			t.Errorf("%s: expected LastActivity to advance", op.name)
 		}
+	}
+}
+
+func TestObserverCannotVote(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Join("s1", "Alice", "observer")
+
+	err := r.CastVote("s1", "5")
+	if err == nil {
+		t.Fatal("expected error when observer tries to vote")
+	}
+	if r.Participants["s1"].Vote != "" {
+		t.Error("observer should not have a vote")
+	}
+}
+
+func TestJoinWithObserverRole(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+
+	p, isNew, err := r.Join("s1", "Alice", "observer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !isNew {
+		t.Error("expected new participant")
+	}
+	if p.Role != "observer" {
+		t.Errorf("expected role %q, got %q", "observer", p.Role)
+	}
+}
+
+func TestJoinWithEmptyRoleDefaultsToVoter(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+
+	p, _, err := r.Join("s1", "Alice", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Role != "voter" {
+		t.Errorf("expected role %q, got %q", "voter", p.Role)
+	}
+}
+
+func TestJoinWithInvalidRole(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+
+	_, _, err := r.Join("s1", "Alice", "admin")
+	if err == nil {
+		t.Fatal("expected error for invalid role")
+	}
+}
+
+func TestUpdateRole(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Join("s1", "Alice", "voter")
+	r.CastVote("s1", "5")
+
+	// Switch to observer — should clear vote.
+	err := r.UpdateRole("s1", "observer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Participants["s1"].Role != "observer" {
+		t.Errorf("expected role %q, got %q", "observer", r.Participants["s1"].Role)
+	}
+	if r.Participants["s1"].Vote != "" {
+		t.Error("expected vote to be cleared when switching to observer")
+	}
+
+	// Switch back to voter.
+	err = r.UpdateRole("s1", "voter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Participants["s1"].Role != "voter" {
+		t.Errorf("expected role %q, got %q", "voter", r.Participants["s1"].Role)
+	}
+}
+
+func TestUpdateRole_InvalidRole(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Join("s1", "Alice", "voter")
+
+	err := r.UpdateRole("s1", "admin")
+	if err == nil {
+		t.Fatal("expected error for invalid role")
+	}
+}
+
+func TestUpdateRole_NonExistent(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+
+	err := r.UpdateRole("ghost", "voter")
+	if err == nil {
+		t.Fatal("expected error for non-existent participant")
+	}
+}
+
+func TestRejoinUpdatesRole(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Join("s1", "Alice", "voter")
+	r.CastVote("s1", "5")
+
+	// Rejoin as observer — should update role and clear vote.
+	p, isNew, err := r.Join("s1", "Alice", "observer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if isNew {
+		t.Error("expected rejoin, got new")
+	}
+	if p.Role != "observer" {
+		t.Errorf("expected role %q, got %q", "observer", p.Role)
+	}
+	if p.Vote != "" {
+		t.Error("expected vote to be cleared on rejoin as observer")
 	}
 }

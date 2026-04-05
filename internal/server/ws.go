@@ -148,6 +148,8 @@ func dispatch(ctx context.Context, client *Client, manager *RoomManager, limiter
 		handleUpdateName(client, manager, env.Payload)
 	case "presence":
 		handlePresence(client, manager, env.Payload)
+	case "update_role":
+		handleUpdateRole(client, manager, env.Payload)
 	case "leave":
 		handleLeave(client, manager)
 	default:
@@ -194,7 +196,7 @@ func handleJoin(client *Client, manager *RoomManager, limiter *RateLimiter, ip s
 	}
 
 	room.Lock()
-	participant, isNew, err := room.Join(p.SessionID, p.UserName)
+	participant, isNew, err := room.Join(p.SessionID, p.UserName, p.Role)
 	if err != nil {
 		room.Unlock()
 		errCode := "invalid_name"
@@ -204,8 +206,6 @@ func handleJoin(client *Client, manager *RoomManager, limiter *RateLimiter, ip s
 		client.SendError(errCode, err.Error())
 		return
 	}
-	_ = participant
-
 	client.SetSessionID(p.SessionID)
 	manager.RegisterClient(client.roomID, client)
 
@@ -224,6 +224,7 @@ func handleJoin(client *Client, manager *RoomManager, limiter *RateLimiter, ip s
 			SessionID: p.SessionID,
 			UserName:  p.UserName,
 			Status:    "active",
+			Role:      participant.Role,
 		})
 		if joinMsg != nil {
 			manager.BroadcastExcept(client.roomID, joinMsg, client)
@@ -419,6 +420,42 @@ func handlePresence(client *Client, manager *RoomManager, payload json.RawMessag
 	msg, _ := MakeEnvelope("presence_changed", PresenceChangedPayload{
 		SessionID: client.SessionID(),
 		Status:    p.Status,
+	})
+	if msg != nil {
+		manager.Broadcast(client.roomID, msg)
+	}
+}
+
+func handleUpdateRole(client *Client, manager *RoomManager, payload json.RawMessage) {
+	if client.SessionID() == "" {
+		client.SendError("invalid_message", "must join first")
+		return
+	}
+
+	var p UpdateRolePayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		client.SendError("invalid_message", "invalid payload")
+		return
+	}
+
+	room := manager.GetRoom(client.roomID)
+	if room == nil {
+		client.SendError("room_not_found", "room does not exist")
+		return
+	}
+
+	room.Lock()
+	err := room.UpdateRole(client.SessionID(), p.Role)
+	room.Unlock()
+
+	if err != nil {
+		client.SendError("invalid_message", err.Error())
+		return
+	}
+
+	msg, _ := MakeEnvelope("role_updated", RoleUpdatedPayload{
+		SessionID: client.SessionID(),
+		Role:      p.Role,
 	})
 	if msg != nil {
 		manager.Broadcast(client.roomID, msg)

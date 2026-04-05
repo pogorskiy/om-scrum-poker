@@ -7,6 +7,7 @@ import {
   isRevealed,
   voteCount,
   selectedCard,
+  myParticipant,
 } from '../../state';
 import { connect, disconnect, send } from '../../ws';
 import { parseRoomId } from '../../utils/room-url';
@@ -55,6 +56,9 @@ export function RoomPage({ path }: Props) {
   const state = roomState.value;
   const revealed = isRevealed.value;
   const counts = voteCount.value;
+  const observerCount = state
+    ? state.participants.filter((p) => p.status !== 'disconnected' && p.role === 'observer').length
+    : 0;
 
   if (status === 'connecting' || (!state && status === 'connected')) {
     return <div class="room__connecting">Connecting...</div>;
@@ -126,7 +130,7 @@ export function RoomPage({ path }: Props) {
             onClick={handleReveal}
             disabled={counts.voted === 0}
           >
-            Show Votes ({counts.voted} of {counts.total} voted)
+            Show Votes ({counts.voted} of {counts.total} voted{observerCount > 0 ? `, ${observerCount} observing` : ''})
           </button>
         )}
         {revealed && (

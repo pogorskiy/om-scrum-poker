@@ -18,6 +18,21 @@ export function ParticipantCard({ participant, index }: Props) {
     .filter(Boolean)
     .join(' ');
 
+  // Observer participants show a badge instead of vote indicator
+  if (participant.role === 'observer') {
+    return (
+      <div class={cardClasses} aria-label={`${participant.userName} - observer`}>
+        <span
+          class={`participant-card__status participant-card__status--${participant.status}`}
+          role="img"
+          aria-label={`Status: ${participant.status}`}
+        />
+        <span class="participant-card__name">{participant.userName}</span>
+        <span class="participant-card__observer-badge">Observer</span>
+      </div>
+    );
+  }
+
   const hasVote = participant.hasVoted && participant.vote !== undefined;
   const showFlip = revealed && hasVote;
 

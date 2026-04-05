@@ -35,6 +35,10 @@ func CalculateResult(participants map[string]*Participant) *RoundResult {
 	var numericValues []float64
 
 	for _, p := range participants {
+		// Observers don't count in vote statistics.
+		if p.Role == "observer" {
+			continue
+		}
 		if p.Vote == "" {
 			continue
 		}

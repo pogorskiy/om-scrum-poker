@@ -73,6 +73,30 @@
   background: var(--color-border);
 }
 
+.header__role-btn {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  transition: border-color 150ms, color 150ms;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.header__role-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.header__role-btn--observer {
+  color: var(--color-status-idle);
+  border-color: var(--color-status-idle);
+}
+
 .header__copy-btn {
   padding: var(--space-sm) var(--space-md);
   background: var(--color-surface);
