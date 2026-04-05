@@ -54,11 +54,10 @@
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   transition-delay: var(--flip-delay, 0s);
-  perspective: 400px;
 }
 
 .participant-card__vote-flipper--revealed {
-  transform: rotateY(180deg);
+  transform: perspective(400px) rotateY(180deg);
 }
 
 .participant-card__vote-face {
