@@ -45,7 +45,9 @@
 - **Корректировка адвоката:** 82 -> 72. Для internal developer tool a11y-проблемы модалок имеют меньший импакт, но объективное нарушение WCAG.
 - **Решение:** Все модалки мигрированы на нативный `<dialog>` элемент через shared Modal компонент (`401ce84`). Реализовано: focus trap, scroll blocking, Escape handling, backdrop click, `aria-labelledby`/`aria-describedby`, focus save/restore. 41 юнит-тест.
 
-### [72] Отсутствуют ARIA-атрибуты на картах голосования
+### ~~[72] Отсутствуют ARIA-атрибуты на картах голосования~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `759bfcd`)
+- **Решение:** Card: `aria-pressed` для состояния выбора. CardDeck: `role="group"` + `aria-label="Select your vote"`. ParticipantCard: `role="img"` и `aria-label` на статус-индикаторе, `aria-label` на контейнере карточки. 20 новых юнит-тестов.
 - **Severity:** HIGH
 - **Источники:** фронтенд, продукт
 - **Файл:** web/src/components/Card/Card.tsx:19-23, web/src/components/CardDeck/CardDeck.tsx:26-37, web/src/components/ParticipantCard/ParticipantCard.tsx:39
@@ -75,7 +77,9 @@
 - **Effort:** low
 - **Корректировка адвоката:** 75 -> 65. Реальный пробел, но не HIGH — пользователь может перезайти с другим именем.
 
-### [65] disconnect() на клиенте не отправляет leave серверу
+### ~~[65] disconnect() на клиенте не отправляет leave серверу~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `806d15a`)
+- **Решение:** `disconnect()` теперь отправляет `{type: "leave", payload: {}}` перед закрытием WebSocket, если соединение открыто. 2 новых юнит-теста.
 - **Severity:** MEDIUM
 - **Источники:** адвокат дьявола (новая находка)
 - **Файл:** web/src/ws.ts:286-301
@@ -84,7 +88,9 @@
 - **Рекомендация:** Отправлять `leave` перед закрытием WebSocket.
 - **Effort:** low
 
-### [65] Input-элементы не имеют визуального outline при фокусе
+### ~~[65] Input-элементы не имеют визуального outline при фокусе~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `54823ad`)
+- **Решение:** Удалён `outline: none` из input. Добавлены `:focus-visible` стили с `2px solid var(--color-primary)` outline для input и button.
 - **Severity:** MEDIUM
 - **Источники:** продукт
 - **Файл:** web/src/global.css:34
@@ -93,7 +99,9 @@
 - **Рекомендация:** Добавить `:focus-visible` стили с видимым outline.
 - **Effort:** low
 
-### [65] WebSocket URL: расхождение между документацией и реализацией
+### ~~[65] WebSocket URL: расхождение между документацией и реализацией~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `13c5311`)
+- **Решение:** CLAUDE.md и docs/planning/04-architecture.md обновлены: `/ws/room/{roomId}` → `/ws/{roomId}` в соответствии с реализацией (6 правок в 04-architecture.md).
 - **Severity:** MEDIUM
 - **Источники:** архитектор
 - **Файл:** internal/server/ws.go:27-28 vs docs/planning/04-architecture.md:372, CLAUDE.md
@@ -120,7 +128,9 @@
 - **Рекомендация:** Логировать ошибку при `err != nil`.
 - **Effort:** low
 
-### [62] Комната "Room not found" не реализована
+### ~~[62] Комната "Room not found" не реализована~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `a1e331c`)
+- **Решение:** При первом получении room_state, если пользователь единственный участник, показывается toast "You started a new room. Share the link to invite others." — мягкий индикатор того, что комната была пустой/expired.
 - **Severity:** MEDIUM
 - **Источники:** продукт
 - **Файл:** web/src/components/RoomPage/RoomPage.tsx:49-51
@@ -159,7 +169,9 @@
 - **Effort:** high
 - **Корректировка адвоката:** 78 -> 60. Осознанный и документированный trade-off, не HIGH.
 
-### [58] Мутация roomState в room_cleared вызывает мерцание UI
+### ~~[58] Мутация roomState в room_cleared вызывает мерцание UI~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `a1e331c`)
+- **Решение:** Удалено присвоение `roomState.value = null` из обработчика `room_cleared`. Вместо промежуточного null-рендера, сразу отправляется join — сервер пришлёт свежий room_state.
 - **Severity:** MEDIUM
 - **Источники:** фронтенд
 - **Файл:** web/src/ws.ts:184-185
@@ -179,7 +191,9 @@
 - **Рекомендация:** Синхронизировать спеку и код.
 - **Effort:** low
 
-### [58] Отсутствие поля roomName в join payload
+### ~~[58] Отсутствие поля roomName в join payload~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `470bc2f`)
+- **Решение:** Добавлено `RoomName` в JoinPayload (опциональное, fallback на `"<user>'s Room"`). Добавлено `CreatedBy` (имя создателя) в Room domain и RoomStatePayload. Frontend генерирует human-readable имя из roomId и отображает создателя в Header. 10 новых тестов (BE+FE).
 - **Severity:** MEDIUM
 - **Источники:** архитектор
 - **Файл:** internal/server/events.go:18-21 vs docs/planning/04-architecture.md:393
@@ -259,7 +273,9 @@
 - **Рекомендация:** Добавить счётчик активных соединений per-IP (лимит 10-20).
 - **Effort:** low
 
-### [55] maxMessageSize = 1024 может быть недостаточен
+### ~~[55] maxMessageSize = 1024 может быть недостаточен~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `470bc2f`)
+- **Решение:** `maxMessageSize` увеличен с 1024 до 4096 байт. Достаточно для join payload с roomName, role и будущих расширений.
 - **Severity:** MEDIUM
 - **Источники:** адвокат дьявола (новая находка)
 - **Файл:** internal/server/ws.go:15
@@ -277,7 +293,9 @@
 - **Рекомендация:** Добавить `role="status"` и `aria-live="polite"`, `role="alert"` для error-тоастов.
 - **Effort:** low
 
-### [55] Отсутствие graceful drain для WebSocket при shutdown
+### ~~[55] Отсутствие graceful drain для WebSocket при shutdown~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `43d4549`)
+- **Решение:** `CloseAll()` теперь отправляет `StatusGoingAway` close frame всем клиентам конкурентно через `CloseGraceful()`, с таймаутом 3 секунды для unresponsive peers. 2 новых теста.
 - **Severity:** MEDIUM
 - **Источники:** архитектор
 - **Файл:** cmd/server/main.go:47-53
@@ -286,7 +304,9 @@
 - **Рекомендация:** Отправлять StatusGoingAway из CloseAll и дать время на drain.
 - **Effort:** low
 
-### [54] Нет режима наблюдателя (observer/spectator)
+### ~~[54] Нет режима наблюдателя (observer/spectator)~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `18a6dcd`)
+- **Решение:** Полная реализация observer/spectator mode. Backend: Role field ("voter"/"observer") в Participant, reject votes from observers, exclude observers from statistics, update_role WS event. Frontend: "Join as observer" checkbox в NameEntryModal, toggle кнопка Voting/Observing в Header, observers видят сообщение вместо колоды карт, Observer badge на карточках участников, счётчик голосов исключает observers. 26 новых тестов (18 BE + 8 FE).
 - **Severity:** MEDIUM
 - **Источники:** продукт
 - **Файл:** web/src/components/RoomPage/RoomPage.tsx, internal/server/ws.go
