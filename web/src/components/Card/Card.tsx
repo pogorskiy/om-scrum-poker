@@ -17,7 +17,7 @@ export function Card({ value, selected, disabled, onClick }: Props) {
     .join(' ');
 
   return (
-    <button class={classes} onClick={disabled ? undefined : onClick} disabled={disabled}>
+    <button class={classes} onClick={disabled ? undefined : onClick} disabled={disabled} aria-pressed={selected}>
       {value}
     </button>
   );

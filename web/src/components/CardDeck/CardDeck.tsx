@@ -25,7 +25,7 @@ export function CardDeck() {
   }
 
   return (
-    <div class={`card-deck${offline ? ' card-deck--disabled' : ''}`}>
+    <div class={`card-deck${offline ? ' card-deck--disabled' : ''}`} role="group" aria-label="Select your vote">
       {CARD_VALUES.map((v) => (
         <Card
           key={v}

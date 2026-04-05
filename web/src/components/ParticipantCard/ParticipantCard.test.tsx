@@ -180,4 +180,42 @@ describe('ParticipantCard', () => {
     const flipper = container.querySelector('.participant-card__vote-flipper');
     expect(flipper).not.toHaveClass('participant-card__vote-flipper--revealed');
   });
+
+  // --- Accessibility tests ---
+
+  it('status indicator has role="img"', () => {
+    const { container } = render(<ParticipantCard participant={activeVoter} index={0} />);
+    const status = container.querySelector('.participant-card__status');
+    expect(status).toHaveAttribute('role', 'img');
+  });
+
+  it('status indicator has aria-label with status text for active', () => {
+    const { container } = render(<ParticipantCard participant={activeVoter} index={0} />);
+    const status = container.querySelector('.participant-card__status');
+    expect(status).toHaveAttribute('aria-label', 'Status: active');
+  });
+
+  it('status indicator has aria-label with status text for disconnected', () => {
+    const { container } = render(<ParticipantCard participant={disconnectedUser} index={0} />);
+    const status = container.querySelector('.participant-card__status');
+    expect(status).toHaveAttribute('aria-label', 'Status: disconnected');
+  });
+
+  it('status indicator has aria-label with status text for idle', () => {
+    const { container } = render(<ParticipantCard participant={idleUser} index={0} />);
+    const status = container.querySelector('.participant-card__status');
+    expect(status).toHaveAttribute('aria-label', 'Status: idle');
+  });
+
+  it('outer div has aria-label with name and status', () => {
+    const { container } = render(<ParticipantCard participant={activeVoter} index={0} />);
+    const card = container.querySelector('.participant-card');
+    expect(card).toHaveAttribute('aria-label', 'Alice - active');
+  });
+
+  it('outer div aria-label reflects disconnected status', () => {
+    const { container } = render(<ParticipantCard participant={disconnectedUser} index={0} />);
+    const card = container.querySelector('.participant-card');
+    expect(card).toHaveAttribute('aria-label', 'Charlie - disconnected');
+  });
 });

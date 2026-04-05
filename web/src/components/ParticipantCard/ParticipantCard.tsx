@@ -46,8 +46,12 @@ export function ParticipantCard({ participant, index }: Props) {
     .join(' ');
 
   return (
-    <div class={cardClasses}>
-      <span class={`participant-card__status participant-card__status--${participant.status}`} />
+    <div class={cardClasses} aria-label={`${participant.userName} - ${participant.status}`}>
+      <span
+        class={`participant-card__status participant-card__status--${participant.status}`}
+        role="img"
+        aria-label={`Status: ${participant.status}`}
+      />
       <span class="participant-card__name">{participant.userName}</span>
       <div
         class={flipperClasses}
