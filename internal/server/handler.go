@@ -46,9 +46,10 @@ func NewServer(config Config, manager *RoomManager, limiter *RateLimiter, embedF
 
 	addr := fmt.Sprintf("%s:%s", config.Host, config.Port)
 	return &http.Server{
-		Addr:        addr,
-		Handler:     mux,
-		IdleTimeout: 60 * time.Second,
+		Addr:              addr,
+		Handler:           mux,
+		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 }
 

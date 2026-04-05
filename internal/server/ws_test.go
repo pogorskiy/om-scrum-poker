@@ -338,14 +338,16 @@ func TestHandleJoin_Rejoin_RestoresActiveStatus(t *testing.T) {
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
 	room, _ := rm.GetOrCreateRoom("room-1", "Test")
 
+	const sid1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01"
+
 	// First join.
 	room.Lock()
-	room.Join("sess-1", "Alice")
+	room.Join(sid1, "Alice")
 	room.Unlock()
 
 	// Simulate disconnect by marking participant as disconnected.
 	room.Lock()
-	room.Participants["sess-1"].Status = "disconnected"
+	room.Participants[sid1].Status = "disconnected"
 	room.Unlock()
 
 	// Set up a second client to observe broadcasts.
@@ -355,7 +357,7 @@ func TestHandleJoin_Rejoin_RestoresActiveStatus(t *testing.T) {
 
 	// Rejoin with a new client (same sessionID).
 	c1 := fakeClient("room-1", rm)
-	payload, _ := json.Marshal(JoinPayload{SessionID: "sess-1", UserName: "Alice"})
+	payload, _ := json.Marshal(JoinPayload{SessionID: sid1, UserName: "Alice"})
 	handleJoin(c1, rm, limiter, "127.0.0.1", payload)
 
 	// Drain room_state sent to c1.
@@ -371,8 +373,8 @@ func TestHandleJoin_Rejoin_RestoresActiveStatus(t *testing.T) {
 	}
 	var presPayload PresenceChangedPayload
 	json.Unmarshal(env2.Payload, &presPayload)
-	if presPayload.SessionID != "sess-1" {
-		t.Errorf("expected sessionId %q, got %q", "sess-1", presPayload.SessionID)
+	if presPayload.SessionID != sid1 {
+		t.Errorf("expected sessionId %q, got %q", sid1, presPayload.SessionID)
 	}
 	if presPayload.Status != "active" {
 		t.Errorf("expected status %q, got %q", "active", presPayload.Status)
@@ -380,7 +382,7 @@ func TestHandleJoin_Rejoin_RestoresActiveStatus(t *testing.T) {
 
 	// Verify domain model.
 	room.Lock()
-	status := room.Participants["sess-1"].Status
+	status := room.Participants[sid1].Status
 	room.Unlock()
 	if status != "active" {
 		t.Errorf("expected participant status %q, got %q", "active", status)
@@ -392,20 +394,22 @@ func TestHandleJoin_Rejoin_PreservesVote(t *testing.T) {
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
 	room, _ := rm.GetOrCreateRoom("room-1", "Test")
 
+	const sid1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01"
+
 	// Join and cast a vote.
 	room.Lock()
-	room.Join("sess-1", "Alice")
-	room.CastVote("sess-1", "5")
+	room.Join(sid1, "Alice")
+	room.CastVote(sid1, "5")
 	room.Unlock()
 
 	// Simulate disconnect.
 	room.Lock()
-	room.Participants["sess-1"].Status = "disconnected"
+	room.Participants[sid1].Status = "disconnected"
 	room.Unlock()
 
 	// Rejoin.
 	c := fakeClient("room-1", rm)
-	payload, _ := json.Marshal(JoinPayload{SessionID: "sess-1", UserName: "Alice"})
+	payload, _ := json.Marshal(JoinPayload{SessionID: sid1, UserName: "Alice"})
 	handleJoin(c, rm, limiter, "127.0.0.1", payload)
 
 	// Drain room_state.
@@ -413,7 +417,7 @@ func TestHandleJoin_Rejoin_PreservesVote(t *testing.T) {
 
 	// Verify vote is preserved.
 	room.Lock()
-	vote := room.Participants["sess-1"].Vote
+	vote := room.Participants[sid1].Vote
 	room.Unlock()
 	if vote != "5" {
 		t.Errorf("expected vote %q to be preserved, got %q", "5", string(vote))
@@ -425,17 +429,20 @@ func TestHandleJoin_Rejoin_SendsFullRoomState(t *testing.T) {
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
 	room, _ := rm.GetOrCreateRoom("room-1", "Test Room")
 
+	const sid1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01"
+	const sid2 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa02"
+
 	// Set up existing participants.
 	room.Lock()
-	room.Join("sess-1", "Alice")
-	room.Join("sess-2", "Bob")
-	room.CastVote("sess-2", "8")
-	room.Participants["sess-1"].Status = "disconnected"
+	room.Join(sid1, "Alice")
+	room.Join(sid2, "Bob")
+	room.CastVote(sid2, "8")
+	room.Participants[sid1].Status = "disconnected"
 	room.Unlock()
 
-	// Rejoin as sess-1.
+	// Rejoin as sid1.
 	c := fakeClient("room-1", rm)
-	payload, _ := json.Marshal(JoinPayload{SessionID: "sess-1", UserName: "Alice"})
+	payload, _ := json.Marshal(JoinPayload{SessionID: sid1, UserName: "Alice"})
 	handleJoin(c, rm, limiter, "127.0.0.1", payload)
 
 	env := recvMessage(t, c, 100*time.Millisecond)
@@ -468,14 +475,16 @@ func TestPresenceLifecycle_ActiveToDisconnectedToActive(t *testing.T) {
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
 	room, _ := rm.GetOrCreateRoom("room-1", "Test")
 
+	const sid1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01"
+
 	// Step 1: Join — participant becomes active.
 	c1 := fakeClient("room-1", rm)
-	payload, _ := json.Marshal(JoinPayload{SessionID: "sess-1", UserName: "Alice"})
+	payload, _ := json.Marshal(JoinPayload{SessionID: sid1, UserName: "Alice"})
 	handleJoin(c1, rm, limiter, "127.0.0.1", payload)
 	recvMessage(t, c1, 100*time.Millisecond) // drain room_state
 
 	room.Lock()
-	status := room.Participants["sess-1"].Status
+	status := room.Participants[sid1].Status
 	room.Unlock()
 	if status != "active" {
 		t.Fatalf("step 1: expected status %q, got %q", "active", status)
@@ -483,11 +492,11 @@ func TestPresenceLifecycle_ActiveToDisconnectedToActive(t *testing.T) {
 
 	// Step 2: Simulate disconnect (as done in HandleWebSocket cleanup).
 	room.Lock()
-	room.Participants["sess-1"].Status = "disconnected"
+	room.Participants[sid1].Status = "disconnected"
 	room.Unlock()
 
 	room.Lock()
-	status = room.Participants["sess-1"].Status
+	status = room.Participants[sid1].Status
 	room.Unlock()
 	if status != "disconnected" {
 		t.Fatalf("step 2: expected status %q, got %q", "disconnected", status)
@@ -495,12 +504,12 @@ func TestPresenceLifecycle_ActiveToDisconnectedToActive(t *testing.T) {
 
 	// Step 3: Rejoin — status should be restored to active.
 	c2 := fakeClient("room-1", rm)
-	payload, _ = json.Marshal(JoinPayload{SessionID: "sess-1", UserName: "Alice"})
+	payload, _ = json.Marshal(JoinPayload{SessionID: sid1, UserName: "Alice"})
 	handleJoin(c2, rm, limiter, "127.0.0.1", payload)
 	recvMessage(t, c2, 100*time.Millisecond) // drain room_state
 
 	room.Lock()
-	status = room.Participants["sess-1"].Status
+	status = room.Participants[sid1].Status
 	room.Unlock()
 	if status != "active" {
 		t.Fatalf("step 3: expected status %q after rejoin, got %q", "active", status)
@@ -610,5 +619,109 @@ func TestClient_SessionID_ConcurrentAccess(t *testing.T) {
 	c.SetSessionID("final")
 	if got := c.SessionID(); got != "final" {
 		t.Errorf("expected sessionID %q, got %q", "final", got)
+	}
+}
+
+// --- Room ID validation tests ---
+
+func TestValidRoomID(t *testing.T) {
+	tests := []struct {
+		name  string
+		id    string
+		valid bool
+	}{
+		{"lowercase letters", "myroom", true},
+		{"digits", "12345", true},
+		{"hyphens", "my-room-1", true},
+		{"mixed valid", "a1-b2-c3", true},
+		{"single char", "a", true},
+		{"max length 64", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true},
+		{"empty", "", false},
+		{"too long 65", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", false},
+		{"uppercase", "MyRoom", false},
+		{"spaces", "my room", false},
+		{"special chars", "room@1", false},
+		{"underscore", "room_1", false},
+		{"slash", "room/1", false},
+		{"dot", "room.1", false},
+		{"unicode", "комната", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := validRoomID.MatchString(tt.id)
+			if got != tt.valid {
+				t.Errorf("validRoomID(%q) = %v, want %v", tt.id, got, tt.valid)
+			}
+		})
+	}
+}
+
+// --- Session ID validation tests ---
+
+func TestValidSessionID(t *testing.T) {
+	tests := []struct {
+		name  string
+		id    string
+		valid bool
+	}{
+		{"valid 32 hex", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01", true},
+		{"valid all digits", "00000000000000000000000000000000", true},
+		{"valid all letters", "abcdefabcdefabcdefabcdefabcdefab", true},
+		{"valid mixed", "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4", true},
+		{"empty", "", false},
+		{"too short 31", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0", false},
+		{"too long 33", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa012", false},
+		{"uppercase hex", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA01", false},
+		{"mixed case", "AAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaa", false},
+		{"non-hex chars g", "gaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01", false},
+		{"non-hex chars z", "zaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01", false},
+		{"spaces", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1", false},
+		{"hyphens", "aaaaaaaa-aaaaaaa-aaaaaaa-aaaaaaa", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := validSessionID.MatchString(tt.id)
+			if got != tt.valid {
+				t.Errorf("validSessionID(%q) = %v, want %v", tt.id, got, tt.valid)
+			}
+		})
+	}
+}
+
+// --- handleJoin session ID validation test ---
+
+func TestHandleJoin_InvalidSessionIDFormat(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+
+	c := fakeClient("room-1", rm)
+	payload, _ := json.Marshal(JoinPayload{SessionID: "not-valid-hex", UserName: "Alice"})
+	handleJoin(c, rm, limiter, "127.0.0.1", payload)
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "error" {
+		t.Fatalf("expected error, got %q", env.Type)
+	}
+	var errPayload ErrorPayload
+	json.Unmarshal(env.Payload, &errPayload)
+	if errPayload.Code != "invalid_message" {
+		t.Errorf("expected error code %q, got %q", "invalid_message", errPayload.Code)
+	}
+	if errPayload.Message != "invalid sessionId format" {
+		t.Errorf("expected message %q, got %q", "invalid sessionId format", errPayload.Message)
+	}
+}
+
+func TestHandleJoin_ValidSessionID(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+
+	c := fakeClient("room-1", rm)
+	payload, _ := json.Marshal(JoinPayload{SessionID: "abcdef0123456789abcdef0123456789", UserName: "Alice"})
+	handleJoin(c, rm, limiter, "127.0.0.1", payload)
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "room_state" {
+		t.Fatalf("expected room_state on valid join, got %q", env.Type)
 	}
 }

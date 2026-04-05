@@ -1,12 +1,14 @@
 package server
 
 import (
+	"embed"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"testing/fstest"
+	"time"
 )
 
 func TestHandleHealth_GET(t *testing.T) {
@@ -324,5 +326,29 @@ func TestHandleHealth_MultipleRoomsMultipleClients(t *testing.T) {
 	}
 	if hr.Connections != 3 {
 		t.Errorf("connections = %d, want 3", hr.Connections)
+	}
+}
+
+func TestNewServer_ReadHeaderTimeout(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+	var emptyFS embed.FS
+
+	srv := NewServer(Config{Host: "127.0.0.1", Port: "0"}, rm, limiter, emptyFS)
+
+	if srv.ReadHeaderTimeout != 5*time.Second {
+		t.Errorf("ReadHeaderTimeout = %v, want %v", srv.ReadHeaderTimeout, 5*time.Second)
+	}
+}
+
+func TestNewServer_IdleTimeout(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+	var emptyFS embed.FS
+
+	srv := NewServer(Config{Host: "127.0.0.1", Port: "0"}, rm, limiter, emptyFS)
+
+	if srv.IdleTimeout != 60*time.Second {
+		t.Errorf("IdleTimeout = %v, want %v", srv.IdleTimeout, 60*time.Second)
 	}
 }

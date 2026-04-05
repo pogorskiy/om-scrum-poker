@@ -5,11 +5,18 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"nhooyr.io/websocket"
 
 	"om-scrum-poker/internal/domain"
+)
+
+// Compiled regexps for input validation.
+var (
+	validRoomID    = regexp.MustCompile(`^[a-z0-9-]{1,64}$`)
+	validSessionID = regexp.MustCompile(`^[a-f0-9]{32}$`)
 )
 
 const maxMessageSize = 1024 // 1 KB
@@ -44,6 +51,10 @@ func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, trustProxy bool
 		roomID := strings.TrimPrefix(r.URL.Path, "/ws/")
 		if roomID == "" || roomID == r.URL.Path {
 			http.Error(w, "missing room id", http.StatusBadRequest)
+			return
+		}
+		if !validRoomID.MatchString(roomID) {
+			http.Error(w, "invalid room id", http.StatusBadRequest)
 			return
 		}
 
@@ -152,6 +163,10 @@ func handleJoin(client *Client, manager *RoomManager, limiter *RateLimiter, ip s
 	}
 	if p.SessionID == "" {
 		client.SendError("invalid_message", "sessionId is required")
+		return
+	}
+	if !validSessionID.MatchString(p.SessionID) {
+		client.SendError("invalid_message", "invalid sessionId format")
 		return
 	}
 	if p.UserName == "" {
