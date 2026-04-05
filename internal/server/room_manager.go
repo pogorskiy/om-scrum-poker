@@ -178,14 +178,39 @@ func (rm *RoomManager) Uptime() time.Duration {
 	return time.Since(rm.startAt)
 }
 
-// CloseAll disconnects all clients gracefully.
+// CloseAll disconnects all clients gracefully with StatusGoingAway.
+// It sends close frames concurrently and waits up to 3 seconds.
 func (rm *RoomManager) CloseAll() {
 	rm.mu.Lock()
-	defer rm.mu.Unlock()
+	var allClients []*Client
 	for _, clients := range rm.clients {
 		for c := range clients {
-			c.Close()
+			allClients = append(allClients, c)
 		}
+	}
+	rm.mu.Unlock()
+
+	// Send close frames concurrently with a timeout.
+	var wg sync.WaitGroup
+	for _, c := range allClients {
+		wg.Add(1)
+		go func(client *Client) {
+			defer wg.Done()
+			client.CloseGraceful()
+		}(c)
+	}
+
+	// Wait up to 3 seconds for all close frames to be sent.
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		log.Println("CloseAll: timed out waiting for graceful close")
 	}
 }
 

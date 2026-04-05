@@ -79,6 +79,12 @@ func (c *Client) Close() {
 	})
 }
 
+// CloseGraceful sends a StatusGoingAway close frame and then stops the client.
+func (c *Client) CloseGraceful() {
+	c.conn.Close(websocket.StatusGoingAway, "server shutting down")
+	c.Close()
+}
+
 // WritePump sends messages from the send channel to the WebSocket.
 func (c *Client) WritePump(ctx context.Context) {
 	ticker := time.NewTicker(pingInterval)

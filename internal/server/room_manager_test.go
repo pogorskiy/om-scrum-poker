@@ -1,10 +1,15 @@
 package server
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"nhooyr.io/websocket"
 	"om-scrum-poker/internal/domain"
 )
 
@@ -454,4 +459,73 @@ func TestStartGC(t *testing.T) {
 	stop := rm.StartGC()
 	// Should not panic on stop.
 	stop()
+}
+
+func TestCloseAll_SendsGoingAway(t *testing.T) {
+	rm := NewRoomManager()
+	rm.GetOrCreateRoom("room-1", "Test", "")
+
+	// Set up a test server that accepts WebSocket connections and registers
+	// them as clients in the RoomManager.
+	clientReady := make(chan *Client, 2)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+			InsecureSkipVerify: true,
+		})
+		if err != nil {
+			t.Errorf("failed to accept websocket: %v", err)
+			return
+		}
+		c := NewClient(conn, "room-1", rm)
+		rm.RegisterClient("room-1", c)
+		clientReady <- c
+		// Keep the handler alive until the client is closed.
+		<-c.done
+	}))
+	defer srv.Close()
+
+	// Dial two WebSocket clients.
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
+	ctx := context.Background()
+
+	conn1, _, err := websocket.Dial(ctx, wsURL, nil)
+	if err != nil {
+		t.Fatalf("failed to dial ws 1: %v", err)
+	}
+	conn2, _, err := websocket.Dial(ctx, wsURL, nil)
+	if err != nil {
+		t.Fatalf("failed to dial ws 2: %v", err)
+	}
+
+	// Wait for both clients to be registered.
+	<-clientReady
+	<-clientReady
+
+	if rm.ConnectionCount() != 2 {
+		t.Fatalf("expected 2 connections, got %d", rm.ConnectionCount())
+	}
+
+	// CloseAll should send StatusGoingAway close frames.
+	rm.CloseAll()
+
+	// Both client-side connections should receive StatusGoingAway.
+	for i, conn := range []*websocket.Conn{conn1, conn2} {
+		// Try to read; the connection should be closed with StatusGoingAway.
+		_, _, err := conn.Read(ctx)
+		if err == nil {
+			t.Errorf("conn %d: expected error after CloseAll, got nil", i+1)
+			continue
+		}
+		closeStatus := websocket.CloseStatus(err)
+		if closeStatus != websocket.StatusGoingAway {
+			t.Errorf("conn %d: expected StatusGoingAway (%d), got %d (err: %v)",
+				i+1, websocket.StatusGoingAway, closeStatus, err)
+		}
+	}
+}
+
+func TestCloseAll_EmptyManager(t *testing.T) {
+	rm := NewRoomManager()
+	// Should not panic with no clients.
+	rm.CloseAll()
 }
