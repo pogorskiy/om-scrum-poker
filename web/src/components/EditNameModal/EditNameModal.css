@@ -1,21 +1,9 @@
-.edit-name-modal__overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 850;
-  animation: edit-name-overlay-in 150ms ease-out;
-}
-
 .edit-name-modal {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   max-width: 360px;
-  width: 90%;
-  box-shadow: var(--shadow-card);
+  width: 90vw;
 }
 
 .edit-name-modal__label {
@@ -74,9 +62,4 @@
 .edit-name-modal__btn--save:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-@keyframes edit-name-overlay-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }

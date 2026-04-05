@@ -1,21 +1,9 @@
-.confirm-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 900;
-  animation: overlay-in 150ms ease-out;
-}
-
 .confirm-dialog {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   max-width: 360px;
-  width: 90%;
-  box-shadow: var(--shadow-card);
+  width: 90vw;
 }
 
 .confirm-dialog__title {
@@ -60,9 +48,4 @@
 
 .confirm-dialog__btn--confirm:hover {
   background: var(--color-danger-hover);
-}
-
-@keyframes overlay-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }

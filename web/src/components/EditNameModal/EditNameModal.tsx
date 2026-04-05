@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { userName, setUserName } from '../../state';
 import { send } from '../../ws';
+import { Modal } from '../Modal/Modal';
 import './EditNameModal.css';
 
 interface Props {
@@ -9,14 +10,6 @@ interface Props {
 
 export function EditNameModal({ onClose }: Props) {
   const [name, setName] = useState(userName.value);
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
 
   function handleSubmit(e: Event) {
     e.preventDefault();
@@ -28,13 +21,9 @@ export function EditNameModal({ onClose }: Props) {
   }
 
   return (
-    <div class="edit-name-modal__overlay" onClick={onClose}>
-      <form
-        class="edit-name-modal"
-        onSubmit={handleSubmit}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <label class="edit-name-modal__label">Change your name</label>
+    <Modal open={true} onClose={onClose} ariaLabelledBy="edit-name-label">
+      <form class="edit-name-modal" onSubmit={handleSubmit}>
+        <label class="edit-name-modal__label" id="edit-name-label">Change your name</label>
         <input
           class="edit-name-modal__input"
           type="text"
@@ -45,22 +34,14 @@ export function EditNameModal({ onClose }: Props) {
           autoFocus
         />
         <div class="edit-name-modal__actions">
-          <button
-            class="edit-name-modal__btn edit-name-modal__btn--cancel"
-            type="button"
-            onClick={onClose}
-          >
+          <button class="edit-name-modal__btn edit-name-modal__btn--cancel" type="button" onClick={onClose}>
             Cancel
           </button>
-          <button
-            class="edit-name-modal__btn edit-name-modal__btn--save"
-            type="submit"
-            disabled={!name.trim()}
-          >
+          <button class="edit-name-modal__btn edit-name-modal__btn--save" type="submit" disabled={!name.trim()}>
             Save
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

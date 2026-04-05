@@ -1,3 +1,4 @@
+import { Modal } from '../Modal/Modal';
 import './ConfirmDialog.css';
 
 interface Props {
@@ -9,10 +10,10 @@ interface Props {
 
 export function ConfirmDialog({ title, message, onConfirm, onCancel }: Props) {
   return (
-    <div class="confirm-overlay" onClick={onCancel}>
-      <div class="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-        <div class="confirm-dialog__title">{title}</div>
-        <div class="confirm-dialog__message">{message}</div>
+    <Modal open={true} onClose={onCancel} ariaLabelledBy="confirm-title" ariaDescribedBy="confirm-message">
+      <div class="confirm-dialog">
+        <div class="confirm-dialog__title" id="confirm-title">{title}</div>
+        <div class="confirm-dialog__message" id="confirm-message">{message}</div>
         <div class="confirm-dialog__actions">
           <button class="confirm-dialog__btn confirm-dialog__btn--cancel" onClick={onCancel}>
             Cancel
@@ -22,6 +23,6 @@ export function ConfirmDialog({ title, message, onConfirm, onCancel }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
