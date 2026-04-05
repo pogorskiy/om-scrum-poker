@@ -16,9 +16,10 @@ import (
 
 func main() {
 	config := server.Config{
-		Host:       getEnv("HOST", "0.0.0.0"),
-		Port:       getEnv("PORT", "8080"),
-		TrustProxy: strings.EqualFold(getEnv("TRUST_PROXY", "false"), "true"),
+		Host:           getEnv("HOST", "0.0.0.0"),
+		Port:           getEnv("PORT", "8080"),
+		TrustProxy:     strings.EqualFold(getEnv("TRUST_PROXY", "false"), "true"),
+		AllowedOrigins: parseAllowedOrigins(getEnv("ALLOWED_ORIGINS", "")),
 	}
 
 	manager := server.NewRoomManager()
@@ -55,6 +56,23 @@ func main() {
 	}
 
 	log.Println("Server stopped")
+}
+
+// parseAllowedOrigins splits a comma-separated string into origin patterns,
+// trimming whitespace and filtering empty entries.
+func parseAllowedOrigins(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	var origins []string
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		if trimmed != "" {
+			origins = append(origins, trimmed)
+		}
+	}
+	return origins
 }
 
 func getEnv(key, fallback string) string {

@@ -225,7 +225,7 @@
 - **Effort:** low
 - **Корректировка адвоката:** 75 -> 55. Deadlock невозможен в текущем коде. Data race реален, но практически безопасен.
 
-### [55] InsecureSkipVerify — отключена проверка Origin при WebSocket
+### [55] ~~InsecureSkipVerify — отключена проверка Origin при WebSocket~~ RESOLVED
 - **Severity:** MEDIUM
 - **Источники:** бекенд, безопасность, архитектор, адвокат дьявола
 - **Файл:** internal/server/ws.go:33-35
@@ -234,6 +234,7 @@
 - **Рекомендация:** Добавить конфигурируемый `ALLOWED_ORIGINS`. Минимально — проверять Origin == Host.
 - **Effort:** low
 - **Корректировка адвоката:** 90 -> 55. Нет cookies, sessionId передаётся явно. Для KISS-проекта без auth CRITICAL неадекватен.
+- **Решение:** Реализовано. Удалён `InsecureSkipVerify: true`. По умолчанию используется same-origin проверка библиотеки nhooyr.io/websocket. Добавлена переменная окружения `ALLOWED_ORIGINS` для конфигурации разрешённых origin (поддержка `*` для dev-режима). Тесты: `ws_origin_test.go`, `main_test.go`.
 
 ### [55] Нет визуальной индикации собственного голоса после reveal
 - **Severity:** MEDIUM

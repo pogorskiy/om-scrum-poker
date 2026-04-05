@@ -26,7 +26,7 @@ docker run -p 8080:8080 om-scrum-poker
 
 ```bash
 # Backend (serves on :8080, uses web/dist from disk if available)
-go run ./cmd/server
+ALLOWED_ORIGINS=http://localhost:5173 go run ./cmd/server
 
 # Frontend dev server (Vite on :5173, proxies API/WS to :8080)
 cd web && npm run dev
@@ -69,6 +69,7 @@ Full protocol spec: [docs/planning/04-architecture.md](docs/planning/04-architec
 | `HOST`        | `0.0.0.0` | Listen address                   |
 | `PORT`        | `8080`    | Listen port                      |
 | `TRUST_PROXY` | `false`   | Trust X-Forwarded-For for rate limiting |
+| `ALLOWED_ORIGINS` | (empty)   | Comma-separated allowed WebSocket origins. `*` = allow all. Empty = same-origin only. |
 
 ## Conventions
 

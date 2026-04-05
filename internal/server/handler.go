@@ -15,9 +15,10 @@ import (
 
 // Config holds the server configuration.
 type Config struct {
-	Host       string
-	Port       string
-	TrustProxy bool
+	Host           string
+	Port           string
+	TrustProxy     bool
+	AllowedOrigins []string
 }
 
 // HealthResponse is returned by the health endpoint.
@@ -38,7 +39,7 @@ func NewServer(config Config, manager *RoomManager, limiter *RateLimiter, embedF
 	mux.HandleFunc("/health", handleHealth(manager))
 
 	// WebSocket endpoint.
-	mux.HandleFunc("/ws/", HandleWebSocket(manager, limiter, config.TrustProxy))
+	mux.HandleFunc("/ws/", HandleWebSocket(manager, limiter, config.TrustProxy, config.AllowedOrigins))
 
 	// SPA fallback: serve static files or index.html.
 	mux.HandleFunc("/", handleSPA(embedFS))

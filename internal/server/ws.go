@@ -14,8 +14,25 @@ import (
 
 const maxMessageSize = 1024 // 1 KB
 
+// buildAcceptOptions creates WebSocket accept options based on allowed origins.
+// If origins contains "*", all origins are allowed (InsecureSkipVerify).
+// If origins is non-empty, only the specified origin patterns are allowed.
+// If origins is empty, the default same-origin check is used.
+func buildAcceptOptions(allowedOrigins []string) *websocket.AcceptOptions {
+	for _, o := range allowedOrigins {
+		if o == "*" {
+			return &websocket.AcceptOptions{InsecureSkipVerify: true}
+		}
+	}
+	if len(allowedOrigins) > 0 {
+		return &websocket.AcceptOptions{OriginPatterns: allowedOrigins}
+	}
+	return &websocket.AcceptOptions{}
+}
+
 // HandleWebSocket upgrades HTTP to WebSocket and manages the connection lifecycle.
-func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, trustProxy bool) http.HandlerFunc {
+func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, trustProxy bool, allowedOrigins []string) http.HandlerFunc {
+	acceptOpts := buildAcceptOptions(allowedOrigins)
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip := clientIP(r, trustProxy)
 		if !limiter.AllowWSConnection(ip) {
@@ -30,9 +47,7 @@ func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, trustProxy bool
 			return
 		}
 
-		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-			InsecureSkipVerify: true, // Allow any origin for development.
-		})
+		conn, err := websocket.Accept(w, r, acceptOpts)
 		if err != nil {
 			log.Printf("websocket accept: %v", err)
 			return
