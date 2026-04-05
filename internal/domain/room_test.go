@@ -2,6 +2,7 @@ package domain
 
 import (
 	"testing"
+	"time"
 )
 
 func TestNewRoom(t *testing.T) {
@@ -251,6 +252,53 @@ func TestUpdateName(t *testing.T) {
 				t.Errorf("UpdateName() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestUpdateName_Success(t *testing.T) {
+	r, _ := NewRoom("room1", "Test")
+	r.Join("s1", "Alice")
+
+	err := r.UpdateName("s1", "Bob")
+	if err != nil {
+		t.Fatalf("UpdateName() unexpected error: %v", err)
+	}
+	if r.Participants["s1"].Name != "Bob" {
+		t.Errorf("expected name %q, got %q", "Bob", r.Participants["s1"].Name)
+	}
+}
+
+func TestUpdateName_LongName(t *testing.T) {
+	r, _ := NewRoom("room1", "Test")
+	r.Join("s1", "Alice")
+
+	longName := "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678" // 34 chars, exceeds MaxParticipantName (30)
+	err := r.UpdateName("s1", longName)
+	if err != nil {
+		t.Fatalf("UpdateName() unexpected error: %v", err)
+	}
+	got := r.Participants["s1"].Name
+	if len(got) != MaxParticipantName {
+		t.Errorf("expected name length %d, got %d", MaxParticipantName, len(got))
+	}
+	if got != longName[:MaxParticipantName] {
+		t.Errorf("expected truncated name %q, got %q", longName[:MaxParticipantName], got)
+	}
+}
+
+func TestUpdateName_UpdatesLastActivity(t *testing.T) {
+	r, _ := NewRoom("room1", "Test")
+	r.Join("s1", "Alice")
+
+	before := r.LastActivity
+	time.Sleep(1 * time.Millisecond)
+
+	err := r.UpdateName("s1", "Bob")
+	if err != nil {
+		t.Fatalf("UpdateName() unexpected error: %v", err)
+	}
+	if !r.LastActivity.After(before) {
+		t.Error("expected LastActivity to be updated after name change")
 	}
 }
 
