@@ -137,7 +137,9 @@
 - **Рекомендация:** Добавить debounce или блокировку кнопки до ответа сервера.
 - **Effort:** low
 
-### [60] Нет анимации при раскрытии голосов ("reveal moment")
+### ~~[60] Нет анимации при раскрытии голосов ("reveal moment")~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05)
+- **Решение:** 3D card flip animation (rotateY 180deg) с front/back faces, staggered reveal (80ms/card), prefers-reduced-motion. 16 unit tests.
 - **Severity:** MEDIUM
 - **Источники:** продукт
 - **Файл:** web/src/components/ParticipantCard/ParticipantCard.tsx:24-35
@@ -165,7 +167,9 @@
 - **Рекомендация:** Использовать `batch()` из `@preact/signals` или не обнулять `roomState`.
 - **Effort:** low
 
-### [58] Расхождение цветовой палитры с UX-спекой
+### ~~[58] Расхождение цветовой палитры с UX-спекой~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05)
+- **Решение:** Primary palette updated to Indigo (#6366f1 light, #818cf8 dark). All 4 color tokens aligned with UX spec.
 - **Severity:** MEDIUM
 - **Источники:** продукт
 - **Файл:** web/src/tokens.css:6
@@ -624,7 +628,9 @@
 - **Рекомендация:** `ReadHeaderTimeout` достаточен. WriteTimeout для не-WS через middleware.
 - **Effort:** low
 
-### [35] Нет тёмной темы
+### ~~[35] Нет тёмной темы~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05)
+- **Решение:** Added @media (prefers-color-scheme: dark) with full token coverage. 68 automated tests verify completeness.
 - **Severity:** LOW
 - **Источники:** фронтенд, продукт
 - **Файл:** web/src/tokens.css
@@ -676,7 +682,9 @@
 - **Рекомендация:** Добавить кнопку "Leave" в Header.
 - **Effort:** low
 
-### [30] Хардкод hex-цветов в hover-стилях
+### ~~[30] Хардкод hex-цветов в hover-стилях~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05)
+- **Решение:** Extracted 8 semantic tokens. All hardcoded hex replaced in 4 component CSS files. Automated test verifies no hex colors in components.
 - **Severity:** LOW
 - **Источники:** фронтенд, продукт
 - **Файл:** web/src/components/RoomPage/RoomPage.css:41, web/src/components/ConfirmDialog/ConfirmDialog.css:52
