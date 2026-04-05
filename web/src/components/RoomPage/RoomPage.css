@@ -39,7 +39,7 @@
 }
 
 .room__action-btn--secondary:hover {
-  background: #d1d5db;
+  background: var(--color-border-hover);
 }
 
 .room__action-btn--danger {

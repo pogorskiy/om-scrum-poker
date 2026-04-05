@@ -50,7 +50,7 @@
 }
 
 .confirm-dialog__btn--cancel:hover {
-  background: #d1d5db;
+  background: var(--color-border-hover);
 }
 
 .confirm-dialog__btn--confirm {
@@ -59,7 +59,7 @@
 }
 
 .confirm-dialog__btn--confirm:hover {
-  background: #dc2626;
+  background: var(--color-danger-hover);
 }
 
 @keyframes overlay-in {
