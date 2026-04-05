@@ -24,13 +24,14 @@
 - **Рекомендация:** Добавить `aria-label={participant.status}` на точку статуса и/или показывать текстовый статус при наведении (tooltip). Для дальтоников можно добавить иконку рядом с точкой.
 - **Effort:** low
 
-### [72] Модальные окна не перехватывают фокус клавиатуры (focus trap)
+### ~~[72] Модальные окна не перехватывают фокус клавиатуры (focus trap)~~ ✅ RESOLVED
 - **Severity:** HIGH
 - **Файл:** web/src/components/NameEntryModal/NameEntryModal.tsx, web/src/components/ConfirmDialog/ConfirmDialog.tsx
 - **Проблема:** Ни NameEntryModal, ни ConfirmDialog не реализуют перехват фокуса (focus trap). Пользователь может Tab-ом уйти за пределы модального окна к элементам, которые не должны быть доступны. Также ConfirmDialog не закрывается по Escape (в UX-спеке указано "pressing Escape triggers Cancel"). NameEntryModal не имеет `role="dialog"` и `aria-modal="true"`.
 - **Влияние:** Нарушение WCAG 2.1 для модальных диалогов. Пользователи клавиатуры могут потерять фокус и не смогут вернуться в диалог.
 - **Рекомендация:** Реализовать focus trap (первый и последний фокусируемый элемент зацикливаются). Добавить обработчик Escape. Добавить `role="dialog"` и `aria-modal="true"`.
 - **Effort:** medium
+- **Решение:** Все модалки мигрированы на нативный `<dialog>` элемент через shared Modal компонент (`401ce84`). Focus trap, scroll blocking, Escape, ARIA-атрибуты. 41 тест.
 
 ### [65] Input-элементы не имеют визуального outline при фокусе
 - **Severity:** MEDIUM

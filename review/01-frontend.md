@@ -8,7 +8,7 @@
 
 ## Accessibility (a11y)
 
-### [82] Модальные окна не управляют фокусом и не блокируют скролл
+### ~~[82] Модальные окна не управляют фокусом и не блокируют скролл~~ ✅ RESOLVED
 
 - **Severity:** HIGH
 - **Файл:** web/src/components/NameEntryModal/NameEntryModal.tsx, web/src/components/ConfirmDialog/ConfirmDialog.tsx
@@ -16,6 +16,7 @@
 - **Влияние:** Пользователи с клавиатурной навигацией и скринридерами не смогут нормально использовать модалки. Нарушение WCAG 2.1 AA (2.4.3 Focus Order, 4.1.2 Name/Role/Value).
 - **Рекомендация:** Добавить focus trap (можно на `<dialog>` элементе или вручную), `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, обработку Escape, блокировку scroll на body.
 - **Effort:** medium
+- **Решение:** Все модалки мигрированы на нативный `<dialog>` элемент через shared Modal компонент (`401ce84`). Focus trap, scroll blocking, Escape, backdrop click, ARIA-атрибуты, focus restore. 41 тест.
 
 ### [72] Отсутствуют ARIA-атрибуты на интерактивных элементах
 
@@ -281,6 +282,6 @@
 - NOTE (0-19): 4
 - Средний балл: 43.7
 - Топ-3 проблемы:
-  1. [82] Модальные окна не управляют фокусом (a11y)
+  1. ~~[82] Модальные окна не управляют фокусом (a11y)~~ ✅ RESOLVED
   2. [75] Очередь WebSocket-сообщений не ограничена
   3. [72] Отсутствуют ARIA-атрибуты на интерактивных элементах
