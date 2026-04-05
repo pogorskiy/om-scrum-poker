@@ -21,7 +21,7 @@ func TestNewRoomManager(t *testing.T) {
 func TestGetOrCreateRoom_CreatesNew(t *testing.T) {
 	rm := NewRoomManager()
 
-	room, err := rm.GetOrCreateRoom("room-1", "Test Room")
+	room, err := rm.GetOrCreateRoom("room-1", "Test Room", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -42,8 +42,8 @@ func TestGetOrCreateRoom_CreatesNew(t *testing.T) {
 func TestGetOrCreateRoom_ReturnsExisting(t *testing.T) {
 	rm := NewRoomManager()
 
-	room1, _ := rm.GetOrCreateRoom("room-1", "First Name")
-	room2, _ := rm.GetOrCreateRoom("room-1", "Second Name")
+	room1, _ := rm.GetOrCreateRoom("room-1", "First Name", "")
+	room2, _ := rm.GetOrCreateRoom("room-1", "Second Name", "")
 
 	if room1 != room2 {
 		t.Error("should return the same room pointer")
@@ -60,7 +60,7 @@ func TestGetOrCreateRoom_ReturnsExisting(t *testing.T) {
 func TestGetOrCreateRoom_EmptyID(t *testing.T) {
 	rm := NewRoomManager()
 
-	_, err := rm.GetOrCreateRoom("", "Name")
+	_, err := rm.GetOrCreateRoom("", "Name", "")
 	if err == nil {
 		t.Error("expected error for empty room ID")
 	}
@@ -69,9 +69,9 @@ func TestGetOrCreateRoom_EmptyID(t *testing.T) {
 func TestGetOrCreateRoom_MultipleRooms(t *testing.T) {
 	rm := NewRoomManager()
 
-	rm.GetOrCreateRoom("a", "Room A")
-	rm.GetOrCreateRoom("b", "Room B")
-	rm.GetOrCreateRoom("c", "Room C")
+	rm.GetOrCreateRoom("a", "Room A", "")
+	rm.GetOrCreateRoom("b", "Room B", "")
+	rm.GetOrCreateRoom("c", "Room C", "")
 
 	if rm.RoomCount() != 3 {
 		t.Errorf("room count = %d, want 3", rm.RoomCount())
@@ -80,7 +80,7 @@ func TestGetOrCreateRoom_MultipleRooms(t *testing.T) {
 
 func TestGetRoom_Exists(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 
 	room := rm.GetRoom("room-1")
 	if room == nil {
@@ -113,7 +113,7 @@ func fakeClient(roomID string, rm *RoomManager) *Client {
 
 func TestRegisterClient(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 
 	c := fakeClient("room-1", rm)
 	rm.RegisterClient("room-1", c)
@@ -137,7 +137,7 @@ func TestRegisterClient_NoRoom(t *testing.T) {
 
 func TestUnregisterClient(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 
 	c := fakeClient("room-1", rm)
 	rm.RegisterClient("room-1", c)
@@ -158,7 +158,7 @@ func TestUnregisterClient_NotRegistered(t *testing.T) {
 
 func TestUnregisterClient_WrongRoom(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 
 	c := fakeClient("room-1", rm)
 	rm.RegisterClient("room-1", c)
@@ -174,7 +174,7 @@ func TestUnregisterClient_WrongRoom(t *testing.T) {
 
 func TestBroadcast(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 
 	c1 := fakeClient("room-1", rm)
 	c2 := fakeClient("room-1", rm)
@@ -212,7 +212,7 @@ func TestBroadcast_EmptyRoom(t *testing.T) {
 
 func TestBroadcastExcept(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 
 	c1 := fakeClient("room-1", rm)
 	c2 := fakeClient("room-1", rm)
@@ -243,7 +243,7 @@ func TestBroadcastExcept(t *testing.T) {
 
 func TestBuildRoomState_Empty(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test Room")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test Room", "")
 
 	room.Lock()
 	state := rm.BuildRoomState(room)
@@ -268,7 +268,7 @@ func TestBuildRoomState_Empty(t *testing.T) {
 
 func TestBuildRoomState_WithParticipants(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 
 	room.Lock()
 	room.Join("sess-b", "Bob")
@@ -304,7 +304,7 @@ func TestBuildRoomState_WithParticipants(t *testing.T) {
 
 func TestBuildRoomState_RevealPhase(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 
 	room.Lock()
 	room.Join("sess-a", "Alice")
@@ -326,7 +326,7 @@ func TestBuildRoomState_RevealPhase(t *testing.T) {
 
 func TestCollectGarbage_RemovesStaleEmptyRooms(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("stale-room", "Stale")
+	room, _ := rm.GetOrCreateRoom("stale-room", "Stale", "")
 
 	// Make the room appear old.
 	room.SetLastActivity(time.Now().Add(-25 * time.Hour))
@@ -340,7 +340,7 @@ func TestCollectGarbage_RemovesStaleEmptyRooms(t *testing.T) {
 
 func TestCollectGarbage_KeepsRoomWithClients(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("active-room", "Active")
+	room, _ := rm.GetOrCreateRoom("active-room", "Active", "")
 
 	// Add a client.
 	c := fakeClient("active-room", rm)
@@ -358,7 +358,7 @@ func TestCollectGarbage_KeepsRoomWithClients(t *testing.T) {
 
 func TestCollectGarbage_KeepsRecentRoom(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("recent-room", "Recent")
+	rm.GetOrCreateRoom("recent-room", "Recent", "")
 
 	rm.collectGarbage()
 
@@ -379,8 +379,8 @@ func TestUptime(t *testing.T) {
 
 func TestConnectionCount_MultipleRooms(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("r1", "R1")
-	rm.GetOrCreateRoom("r2", "R2")
+	rm.GetOrCreateRoom("r1", "R1", "")
+	rm.GetOrCreateRoom("r2", "R2", "")
 
 	rm.RegisterClient("r1", fakeClient("r1", rm))
 	rm.RegisterClient("r1", fakeClient("r1", rm))
@@ -400,7 +400,7 @@ func TestRoomManager_ConcurrentAccess(t *testing.T) {
 		go func(n int) {
 			defer wg.Done()
 			roomID := "room-concurrent"
-			rm.GetOrCreateRoom(roomID, "Test")
+			rm.GetOrCreateRoom(roomID, "Test", "")
 			c := fakeClient(roomID, rm)
 			rm.RegisterClient(roomID, c)
 			rm.Broadcast(roomID, []byte(`{"type":"ping"}`))
@@ -416,7 +416,7 @@ func TestRoomManager_ConcurrentAccess(t *testing.T) {
 
 func TestUpdatePingTime(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 
 	room.Lock()
 	room.Join("sess-1", "Alice")
@@ -444,7 +444,7 @@ func TestUpdatePingTime_NonexistentRoom(t *testing.T) {
 
 func TestUpdatePingTime_NonexistentParticipant(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 	// Should not panic.
 	rm.UpdatePingTime("room-1", "nonexistent")
 }

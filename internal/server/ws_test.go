@@ -77,7 +77,7 @@ func TestHandleUpdateName_RoomNotFound(t *testing.T) {
 
 func TestHandleUpdateName_InvalidPayload(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 	c := fakeClient("room-1", rm)
 	c.SetSessionID("sess-1")
 
@@ -97,7 +97,7 @@ func TestHandleUpdateName_InvalidPayload(t *testing.T) {
 
 func TestHandleUpdateName_EmptyUserName(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
 	room.Join("sess-1", "Alice")
 	room.Unlock()
@@ -122,7 +122,7 @@ func TestHandleUpdateName_EmptyUserName(t *testing.T) {
 
 func TestHandleUpdateName_Success_BroadcastsToAllClients(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
 	room.Join("sess-1", "Alice")
 	room.Join("sess-2", "Bob")
@@ -159,7 +159,7 @@ func TestHandleUpdateName_Success_BroadcastsToAllClients(t *testing.T) {
 
 func TestHandleUpdateName_Success_UpdatesDomainModel(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
 	room.Join("sess-1", "Alice")
 	room.Unlock()
@@ -186,7 +186,7 @@ func TestHandleUpdateName_Success_UpdatesDomainModel(t *testing.T) {
 
 func TestHandleUpdateName_ParticipantNotInRoom(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 	// Room exists but participant "sess-ghost" is not in it.
 
 	c := fakeClient("room-1", rm)
@@ -208,7 +208,7 @@ func TestHandleUpdateName_ParticipantNotInRoom(t *testing.T) {
 
 func TestHandleUpdateName_NoExtraMessagesOnError(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
 	room.Join("sess-1", "Alice")
 	room.Unlock()
@@ -238,7 +238,7 @@ func TestHandleUpdateName_NoExtraMessagesOnError(t *testing.T) {
 
 func TestHandleLeave_RemovesParticipant(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
 	room.Join("sess-1", "Alice")
 	room.Join("sess-2", "Bob")
@@ -278,7 +278,7 @@ func TestHandleLeave_RemovesParticipant(t *testing.T) {
 
 func TestHandleLeave_NotJoined(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
 	room.Join("sess-2", "Bob")
 	room.Unlock()
@@ -310,7 +310,7 @@ func TestHandleLeave_RoomNotFound(t *testing.T) {
 
 func TestHandleLeave_UnregistersClient(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 
 	c := fakeClient("room-1", rm)
 	c.SetSessionID("sess-1")
@@ -336,7 +336,7 @@ func TestHandleLeave_UnregistersClient(t *testing.T) {
 func TestHandleJoin_Rejoin_RestoresActiveStatus(t *testing.T) {
 	rm := NewRoomManager()
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 
 	const sid1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01"
 
@@ -392,7 +392,7 @@ func TestHandleJoin_Rejoin_RestoresActiveStatus(t *testing.T) {
 func TestHandleJoin_Rejoin_PreservesVote(t *testing.T) {
 	rm := NewRoomManager()
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 
 	const sid1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01"
 
@@ -427,7 +427,7 @@ func TestHandleJoin_Rejoin_PreservesVote(t *testing.T) {
 func TestHandleJoin_Rejoin_SendsFullRoomState(t *testing.T) {
 	rm := NewRoomManager()
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
-	room, _ := rm.GetOrCreateRoom("room-1", "Test Room")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test Room", "")
 
 	const sid1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01"
 	const sid2 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa02"
@@ -473,7 +473,7 @@ func TestHandleJoin_Rejoin_SendsFullRoomState(t *testing.T) {
 func TestPresenceLifecycle_ActiveToDisconnectedToActive(t *testing.T) {
 	rm := NewRoomManager()
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 
 	const sid1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01"
 
@@ -518,7 +518,7 @@ func TestPresenceLifecycle_ActiveToDisconnectedToActive(t *testing.T) {
 
 func TestHandlePresence_InvalidStatus(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
 	room.Join("sess-1", "Alice")
 	room.Unlock()
@@ -545,7 +545,7 @@ func TestHandlePresence_InvalidStatus(t *testing.T) {
 
 func TestDispatch_LeaveEvent(t *testing.T) {
 	rm := NewRoomManager()
-	room, _ := rm.GetOrCreateRoom("room-1", "Test")
+	room, _ := rm.GetOrCreateRoom("room-1", "Test", "")
 	room.Lock()
 	room.Join("sess-1", "Alice")
 	room.Unlock()
@@ -723,5 +723,105 @@ func TestHandleJoin_ValidSessionID(t *testing.T) {
 	env := recvMessage(t, c, 100*time.Millisecond)
 	if env.Type != "room_state" {
 		t.Fatalf("expected room_state on valid join, got %q", env.Type)
+	}
+}
+
+func TestHandleJoin_RoomNameFromPayload(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+
+	const sid = "abcdef0123456789abcdef0123456789"
+	c := fakeClient("room-custom", rm)
+	payload, _ := json.Marshal(JoinPayload{
+		SessionID: sid,
+		UserName:  "Alice",
+		RoomName:  "Sprint 42",
+	})
+	handleJoin(c, rm, limiter, "127.0.0.1", payload)
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "room_state" {
+		t.Fatalf("expected room_state, got %q", env.Type)
+	}
+
+	var state RoomStatePayload
+	if err := json.Unmarshal(env.Payload, &state); err != nil {
+		t.Fatalf("unmarshal room state: %v", err)
+	}
+	if state.RoomName != "Sprint 42" {
+		t.Errorf("expected roomName %q, got %q", "Sprint 42", state.RoomName)
+	}
+	if state.CreatedBy != "Alice" {
+		t.Errorf("expected createdBy %q, got %q", "Alice", state.CreatedBy)
+	}
+}
+
+func TestHandleJoin_RoomNameFallback(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+
+	const sid = "abcdef0123456789abcdef0123456789"
+	c := fakeClient("room-fallback", rm)
+	payload, _ := json.Marshal(JoinPayload{
+		SessionID: sid,
+		UserName:  "Alice",
+	})
+	handleJoin(c, rm, limiter, "127.0.0.1", payload)
+
+	env := recvMessage(t, c, 100*time.Millisecond)
+	if env.Type != "room_state" {
+		t.Fatalf("expected room_state, got %q", env.Type)
+	}
+
+	var state RoomStatePayload
+	if err := json.Unmarshal(env.Payload, &state); err != nil {
+		t.Fatalf("unmarshal room state: %v", err)
+	}
+	if state.RoomName != "Alice's Room" {
+		t.Errorf("expected roomName %q, got %q", "Alice's Room", state.RoomName)
+	}
+}
+
+func TestHandleJoin_CreatedByOnlySetForFirstJoiner(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+
+	const sid1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01"
+	const sid2 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa02"
+
+	// First joiner creates the room.
+	c1 := fakeClient("room-creator", rm)
+	payload1, _ := json.Marshal(JoinPayload{
+		SessionID: sid1,
+		UserName:  "Alice",
+		RoomName:  "Alice's Sprint",
+	})
+	handleJoin(c1, rm, limiter, "127.0.0.1", payload1)
+	recvMessage(t, c1, 100*time.Millisecond) // drain room_state
+
+	// Second joiner joins existing room.
+	c2 := fakeClient("room-creator", rm)
+	payload2, _ := json.Marshal(JoinPayload{
+		SessionID: sid2,
+		UserName:  "Bob",
+		RoomName:  "Bob's Sprint",
+	})
+	handleJoin(c2, rm, limiter, "127.0.0.1", payload2)
+
+	env := recvMessage(t, c2, 100*time.Millisecond)
+	if env.Type != "room_state" {
+		t.Fatalf("expected room_state, got %q", env.Type)
+	}
+
+	var state RoomStatePayload
+	if err := json.Unmarshal(env.Payload, &state); err != nil {
+		t.Fatalf("unmarshal room state: %v", err)
+	}
+	// Room name and creator should remain from the first joiner.
+	if state.RoomName != "Alice's Sprint" {
+		t.Errorf("expected roomName %q, got %q", "Alice's Sprint", state.RoomName)
+	}
+	if state.CreatedBy != "Alice" {
+		t.Errorf("expected createdBy %q (first joiner), got %q", "Alice", state.CreatedBy)
 	}
 }

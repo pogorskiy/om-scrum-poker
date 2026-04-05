@@ -11,6 +11,15 @@ import {
   type Participant,
 } from './state';
 
+// Strip trailing hex suffix from roomId to produce a human-readable name
+export function generateRoomName(roomId: string): string {
+  const match = roomId.match(/^(.+?)-[a-f0-9]{8,}$/);
+  if (match) {
+    return match[1].replace(/-/g, ' ');
+  }
+  return roomId.replace(/-/g, ' ');
+}
+
 let socket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
@@ -196,7 +205,7 @@ function handleMessage(event: MessageEvent): void {
       // The server will send a fresh room_state after our join.
       send({
         type: 'join',
-        payload: { sessionId: sessionId.value, userName: userName.value },
+        payload: { sessionId: sessionId.value, userName: userName.value, roomName: generateRoomName(currentRoomId) },
       });
       break;
     }
@@ -289,10 +298,11 @@ export function connect(roomId: string): void {
     reconnectAttempt = 0;
     reconnectInfo.value = { attempt: 0, maxReached: false };
 
-    // Send join message
+    // Send join message with a display name derived from the roomId
+    const roomName = generateRoomName(currentRoomId);
     send({
       type: 'join',
-      payload: { sessionId: sessionId.value, userName: userName.value },
+      payload: { sessionId: sessionId.value, userName: userName.value, roomName },
     });
 
     flushQueue();

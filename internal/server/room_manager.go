@@ -66,7 +66,7 @@ func (rm *RoomManager) collectGarbage() {
 }
 
 // GetOrCreateRoom returns an existing room or creates a new one.
-func (rm *RoomManager) GetOrCreateRoom(id, name string) (*domain.Room, error) {
+func (rm *RoomManager) GetOrCreateRoom(id, name, createdBy string) (*domain.Room, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -74,7 +74,7 @@ func (rm *RoomManager) GetOrCreateRoom(id, name string) (*domain.Room, error) {
 		return room, nil
 	}
 
-	room, err := domain.NewRoom(id, name)
+	room, err := domain.NewRoom(id, name, createdBy)
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +209,7 @@ func (rm *RoomManager) BuildRoomState(room *domain.Room) RoomStatePayload {
 	state := RoomStatePayload{
 		RoomID:       room.ID,
 		RoomName:     room.Name,
+		CreatedBy:    room.CreatedBy,
 		Phase:        room.Phase,
 		Participants: participants,
 	}

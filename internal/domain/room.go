@@ -54,6 +54,7 @@ type Participant struct {
 type Room struct {
 	ID           string
 	Name         string
+	CreatedBy    string // display name of the room creator
 	Phase        Phase
 	Participants map[string]*Participant // keyed by SessionID
 	CreatedAt    time.Time
@@ -81,8 +82,8 @@ func (r *Room) SetLastActivity(t time.Time) {
 	r.lastActivity.Store(t.UnixNano())
 }
 
-// NewRoom creates a room with the given ID and name.
-func NewRoom(id, name string) (*Room, error) {
+// NewRoom creates a room with the given ID, name, and creator session ID.
+func NewRoom(id, name, createdBy string) (*Room, error) {
 	if id == "" {
 		return nil, fmt.Errorf("room id cannot be empty")
 	}
@@ -92,6 +93,7 @@ func NewRoom(id, name string) (*Room, error) {
 	r := &Room{
 		ID:           id,
 		Name:         name,
+		CreatedBy:    createdBy,
 		Phase:        PhaseVoting,
 		Participants: make(map[string]*Participant),
 		CreatedAt:    time.Now(),

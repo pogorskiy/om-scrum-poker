@@ -19,7 +19,7 @@ var (
 	validSessionID = regexp.MustCompile(`^[a-f0-9]{32}$`)
 )
 
-const maxMessageSize = 1024 // 1 KB
+const maxMessageSize = 4096 // 4 KB
 
 // buildAcceptOptions creates WebSocket accept options based on allowed origins.
 // If origins contains "*", all origins are allowed (InsecureSkipVerify).
@@ -183,7 +183,11 @@ func handleJoin(client *Client, manager *RoomManager, limiter *RateLimiter, ip s
 		}
 	}
 
-	room, err := manager.GetOrCreateRoom(client.roomID, p.UserName+"'s Room")
+	roomName := p.RoomName
+	if roomName == "" {
+		roomName = p.UserName + "'s Room"
+	}
+	room, err := manager.GetOrCreateRoom(client.roomID, roomName, p.UserName)
 	if err != nil {
 		client.SendError("room_not_found", err.Error())
 		return

@@ -18,6 +18,7 @@ type Envelope struct {
 type JoinPayload struct {
 	SessionID string `json:"sessionId"`
 	UserName  string `json:"userName"`
+	RoomName  string `json:"roomName,omitempty"`
 }
 
 type VotePayload struct {
@@ -44,6 +45,7 @@ type ParticipantInfo struct {
 type RoomStatePayload struct {
 	RoomID       string                `json:"roomId"`
 	RoomName     string                `json:"roomName"`
+	CreatedBy    string                `json:"createdBy"`
 	Phase        domain.Phase          `json:"phase"`
 	Participants []ParticipantInfo     `json:"participants"`
 	Result       *domain.RoundResult   `json:"result"`

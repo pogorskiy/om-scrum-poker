@@ -52,8 +52,8 @@ func TestHandleHealth_GET(t *testing.T) {
 
 func TestHandleHealth_WithRooms(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("r1", "Room 1")
-	rm.GetOrCreateRoom("r2", "Room 2")
+	rm.GetOrCreateRoom("r1", "Room 1", "")
+	rm.GetOrCreateRoom("r2", "Room 2", "")
 
 	c := fakeClient("r1", rm)
 	rm.RegisterClient("r1", c)
@@ -272,7 +272,7 @@ func TestLogMiddleware(t *testing.T) {
 
 func TestHandleHealth_AfterClientDisconnect(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Test")
+	rm.GetOrCreateRoom("room-1", "Test", "")
 
 	c := fakeClient("room-1", rm)
 	rm.RegisterClient("room-1", c)
@@ -303,9 +303,9 @@ func TestHandleHealth_AfterClientDisconnect(t *testing.T) {
 
 func TestHandleHealth_MultipleRoomsMultipleClients(t *testing.T) {
 	rm := NewRoomManager()
-	rm.GetOrCreateRoom("room-1", "Room 1")
-	rm.GetOrCreateRoom("room-2", "Room 2")
-	rm.GetOrCreateRoom("room-3", "Room 3")
+	rm.GetOrCreateRoom("room-1", "Room 1", "")
+	rm.GetOrCreateRoom("room-2", "Room 2", "")
+	rm.GetOrCreateRoom("room-3", "Room 3", "")
 
 	// 2 clients in room-1, 1 client in room-2, 0 in room-3.
 	rm.RegisterClient("room-1", fakeClient("room-1", rm))

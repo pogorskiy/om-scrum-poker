@@ -21,7 +21,7 @@ func TestNewRoom(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, err := NewRoom(tt.id, tt.rName)
+			r, err := NewRoom(tt.id, tt.rName, "")
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("NewRoom() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -39,7 +39,7 @@ func TestNewRoom(t *testing.T) {
 }
 
 func TestJoin(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 
 	tests := []struct {
 		name      string
@@ -77,7 +77,7 @@ func TestJoin(t *testing.T) {
 }
 
 func TestJoinRejoinRestoresStatus(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	// Simulate disconnect.
@@ -96,7 +96,7 @@ func TestJoinRejoinRestoresStatus(t *testing.T) {
 }
 
 func TestJoinRoomFull(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	for i := 0; i < MaxParticipants; i++ {
 		_, _, err := r.Join(string(rune('A'+i))+"id", "User")
 		if err != nil {
@@ -110,7 +110,7 @@ func TestJoinRoomFull(t *testing.T) {
 }
 
 func TestLeave(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	if !r.Leave("s1") {
@@ -125,7 +125,7 @@ func TestLeave(t *testing.T) {
 }
 
 func TestCastVote(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	tests := []struct {
@@ -151,7 +151,7 @@ func TestCastVote(t *testing.T) {
 }
 
 func TestCastVoteDuringReveal(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 	r.CastVote("s1", "5")
 	r.Reveal()
@@ -163,7 +163,7 @@ func TestCastVoteDuringReveal(t *testing.T) {
 }
 
 func TestCastVoteNonExistentParticipant(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	err := r.CastVote("ghost", "5")
 	if err == nil {
 		t.Error("expected error for non-existent participant")
@@ -171,7 +171,7 @@ func TestCastVoteNonExistentParticipant(t *testing.T) {
 }
 
 func TestReveal(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 	r.CastVote("s1", "5")
 
@@ -194,7 +194,7 @@ func TestReveal(t *testing.T) {
 }
 
 func TestNewRound(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 	r.Join("s2", "Bob")
 	r.CastVote("s1", "5")
@@ -214,7 +214,7 @@ func TestNewRound(t *testing.T) {
 }
 
 func TestClearRoom(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 	r.Join("s2", "Bob")
 	r.CastVote("s1", "5")
@@ -231,7 +231,7 @@ func TestClearRoom(t *testing.T) {
 }
 
 func TestUpdateName(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	tests := []struct {
@@ -256,7 +256,7 @@ func TestUpdateName(t *testing.T) {
 }
 
 func TestUpdateName_Success(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	err := r.UpdateName("s1", "Bob")
@@ -269,7 +269,7 @@ func TestUpdateName_Success(t *testing.T) {
 }
 
 func TestUpdateName_LongName(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	longName := "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678" // 34 chars, exceeds MaxParticipantName (30)
@@ -287,7 +287,7 @@ func TestUpdateName_LongName(t *testing.T) {
 }
 
 func TestUpdateName_UpdatesLastActivity(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	before := r.GetLastActivity()
@@ -303,7 +303,7 @@ func TestUpdateName_UpdatesLastActivity(t *testing.T) {
 }
 
 func TestUpdatePresence(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	tests := []struct {
@@ -329,7 +329,7 @@ func TestUpdatePresence(t *testing.T) {
 }
 
 func TestHasVoted(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	if r.HasVoted("s1") {
@@ -349,7 +349,7 @@ func TestHasVoted(t *testing.T) {
 }
 
 func TestActiveConnections(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 	r.Join("s2", "Bob")
 	r.Join("s3", "Charlie")
@@ -365,7 +365,7 @@ func TestActiveConnections(t *testing.T) {
 }
 
 func TestTouchActivity(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	before := r.GetLastActivity()
 	time.Sleep(1 * time.Millisecond)
 
@@ -379,7 +379,7 @@ func TestTouchActivity(t *testing.T) {
 
 func TestGetLastActivity_ReasonableTime(t *testing.T) {
 	now := time.Now()
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	got := r.GetLastActivity()
 
 	if got.Before(now.Add(-1*time.Second)) || got.After(now.Add(1*time.Second)) {
@@ -388,7 +388,7 @@ func TestGetLastActivity_ReasonableTime(t *testing.T) {
 }
 
 func TestLastActivityUnixNano(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	nanos := r.LastActivityUnixNano()
 	if nanos <= 0 {
 		t.Errorf("LastActivityUnixNano() = %d, want > 0", nanos)
@@ -396,7 +396,7 @@ func TestLastActivityUnixNano(t *testing.T) {
 }
 
 func TestSetLastActivity(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	past := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	r.SetLastActivity(past)
 	got := r.GetLastActivity()
@@ -406,7 +406,7 @@ func TestSetLastActivity(t *testing.T) {
 }
 
 func TestAllOperationsUpdateLastActivity(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 	r.Join("s1", "Alice")
 
 	ops := []struct {

@@ -6,7 +6,7 @@ import (
 )
 
 func TestLastActivity_ConcurrentAccess(t *testing.T) {
-	r, _ := NewRoom("room1", "Test")
+	r, _ := NewRoom("room1", "Test", "")
 
 	var wg sync.WaitGroup
 	const goroutines = 50

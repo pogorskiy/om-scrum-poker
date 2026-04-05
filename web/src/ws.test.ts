@@ -24,7 +24,7 @@ class MockWebSocket {
 vi.stubGlobal('WebSocket', MockWebSocket);
 
 // Import after mocking WebSocket
-import { connect, disconnect, retry } from './ws';
+import { connect, disconnect, retry, generateRoomName } from './ws';
 
 /** Get the most recently created WebSocket instance */
 function latestWs(): MockWebSocket {
@@ -197,5 +197,44 @@ describe('ws.ts reconnect logic', () => {
 
     const lostToast = toasts.value.find((t) => t.message.includes('Connection lost'));
     expect(lostToast).toBeUndefined();
+  });
+});
+
+describe('generateRoomName', () => {
+  it('strips trailing hex suffix and replaces dashes with spaces', () => {
+    expect(generateRoomName('sprint-42-a3f1c9b2d4e6')).toBe('sprint 42');
+  });
+
+  it('handles room id with long hex suffix', () => {
+    expect(generateRoomName('my-room-abcdef0123456789')).toBe('my room');
+  });
+
+  it('replaces dashes with spaces when no hex suffix', () => {
+    expect(generateRoomName('my-cool-room')).toBe('my cool room');
+  });
+
+  it('returns single-word id unchanged', () => {
+    expect(generateRoomName('planning')).toBe('planning');
+  });
+
+  it('does not strip short hex-like suffixes (less than 8 chars)', () => {
+    expect(generateRoomName('sprint-abc')).toBe('sprint abc');
+  });
+});
+
+describe('join payload includes roomName', () => {
+  it('sends roomName in join message on connect', () => {
+    connect('sprint-42-a3f1c9b2');
+    const ws = latestWs();
+    ws.onopen?.(new Event('open'));
+
+    // First send call after open is the join message
+    const joinCall = ws.send.mock.calls.find((call: string[]) => {
+      const msg = JSON.parse(call[0]);
+      return msg.type === 'join';
+    });
+    expect(joinCall).toBeDefined();
+    const joinMsg = JSON.parse(joinCall![0]);
+    expect(joinMsg.payload.roomName).toBe('sprint 42');
   });
 });

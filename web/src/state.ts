@@ -23,6 +23,7 @@ export interface VoteResult {
 export interface RoomState {
   roomId: string;
   roomName: string;
+  createdBy: string;
   phase: 'voting' | 'reveal';
   participants: Participant[];
   result: VoteResult | null;
@@ -50,7 +51,7 @@ export type ServerMessage =
 
 // Client message types
 export type ClientMessage =
-  | { type: 'join'; payload: { sessionId: string; userName: string } }
+  | { type: 'join'; payload: { sessionId: string; userName: string; roomName?: string } }
   | { type: 'vote'; payload: { value: string } }
   | { type: 'reveal'; payload: Record<string, never> }
   | { type: 'new_round'; payload: Record<string, never> }
