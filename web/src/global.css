@@ -32,7 +32,12 @@ input {
   font-family: inherit;
   font-size: inherit;
   border: none;
-  outline: none;
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 button:disabled {
