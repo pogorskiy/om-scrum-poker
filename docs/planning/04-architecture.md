@@ -23,7 +23,7 @@
 | Change | Reason (review iteration 2 ref) |
 |---|---|
 | **Envelope format: `{ type, payload }` everywhere.** Rewrote ALL message examples to use `{ type, payload: {...} }`. Removed contradictory "flat format" references from changelog, decision log, and CLAUDE.md template. | Review 2.1: Architecture doc contradicted itself -- changelog/CLAUDE.md said "flat", but all detailed examples used `{ type, payload }`. Two of three documents already used envelope format in their specs. |
-| **WebSocket URL: `/ws/room/{roomId}`**. Added `/room/` segment to match frontend and backend plans. | Review 2.2: Architecture doc used `/ws/{roomId}`, frontend/backend plans used `/ws/room/:id`. |
+| **WebSocket URL: `/ws/{roomId}`**. Reverted to `/ws/{roomId}` to match actual server implementation. | Review 2.2: Architecture doc used `/ws/{roomId}`, frontend/backend plans used `/ws/room/:id`. |
 | **Canonical event name: `name_updated`** (not `name_changed`). | Review 2.3: Backend plan used `name_changed`, others used `name_updated`. |
 | **Canonical presence event: `presence`** (client sends `presence`, not `presence_update`). | Review 2.4: Frontend plan used `presence_update`, others used `presence`. |
 | **Heartbeat: protocol-level pings every 5 seconds.** Fixed contradictory 30-second reference. Added explicit "no application-level heartbeat messages" note. | Review 2.5: Section 4.5 said 30s, hardcoded defaults said 5s. Frontend plan still had app-level heartbeat. |
@@ -328,7 +328,7 @@ Each connection has a buffered send channel (capacity 32). If the channel fills 
 #### WebSocket Handler
 
 The handler:
-1. Upgrades HTTP to WebSocket at `/ws/room/{roomId}`.
+1. Upgrades HTTP to WebSocket at `/ws/{roomId}`.
 2. Reads the first message, which must be `join`.
 3. Calls `store.GetOrCreate()` to create the room if it does not exist, using the `roomName` from the `join` message.
 4. Registers with the Hub and sends `room_state` to the joining client.
@@ -368,8 +368,8 @@ Three environment variables. Everything else uses sensible hardcoded defaults.
 
 ### 4.1 Connection
 
-- **URL:** `ws(s)://{host}/ws/room/{roomId}`
-- **Example:** `wss://poker.example.com/ws/room/sprint-42-a3f1c9b2d4e6`
+- **URL:** `ws(s)://{host}/ws/{roomId}`
+- **Example:** `wss://poker.example.com/ws/sprint-42-a3f1c9b2d4e6`
 - **Max message size:** 1 KB (inbound). Messages exceeding this close the connection.
 
 ### 4.2 Message Envelope Format
@@ -804,7 +804,7 @@ Alice                     Server                    Bob
 | `/` | GET | Serve `index.html` (SPA entry point) |
 | `/assets/*` | GET | Serve static assets (JS, CSS, images) |
 | `/api/rooms/{id}` | GET | Check if a room exists. Returns `200 { "exists": true }` or `404`. Used by the SPA before showing the room page vs. "Room not found." |
-| `/ws/room/{roomId}` | GET | WebSocket upgrade endpoint |
+| `/ws/{roomId}` | GET | WebSocket upgrade endpoint |
 | `/health` | GET | Health check. Returns `200 { "status": "ok", "rooms": 42, "connections": 128 }` |
 | `/*` (catch-all) | GET | Serve `index.html` for SPA client-side routing (any path not matching above) |
 
@@ -812,7 +812,7 @@ There is no `POST /api/rooms` endpoint. Room creation is purely client-side and 
 
 1. The frontend generates a slug from the room name and appends a 12-character hex suffix.
 2. The frontend navigates to `/room/{slug}-{id}`.
-3. The frontend opens a WebSocket to `/ws/room/{slug}-{id}`.
+3. The frontend opens a WebSocket to `/ws/{slug}-{id}`.
 4. The first `join` message includes `roomName` (the display name).
 5. The server calls `store.GetOrCreate()` with the room ID and display name. The room materializes.
 

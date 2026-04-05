@@ -53,7 +53,7 @@ docs/planning/      Architecture and planning documents
 
 ## WebSocket Protocol
 
-Endpoint: `GET /ws/room/{roomId}`
+Endpoint: `GET /ws/{roomId}`
 
 All messages use envelope format: `{ "type": "<event>", "payload": { ... } }`.
 
