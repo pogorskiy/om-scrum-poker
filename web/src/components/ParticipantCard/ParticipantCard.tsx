@@ -3,9 +3,10 @@ import './ParticipantCard.css';
 
 interface Props {
   participant: Participant;
+  index: number;
 }
 
-export function ParticipantCard({ participant }: Props) {
+export function ParticipantCard({ participant, index }: Props) {
   const revealed = isRevealed.value;
   const isSelf = participant.sessionId === sessionId.value;
 
@@ -17,28 +18,46 @@ export function ParticipantCard({ participant }: Props) {
     .filter(Boolean)
     .join(' ');
 
-  // Determine vote indicator
-  let voteContent: string;
-  let voteClass = 'participant-card__vote';
+  const hasVote = participant.hasVoted && participant.vote !== undefined;
+  const showFlip = revealed && hasVote;
 
-  if (revealed && participant.vote !== undefined) {
-    voteContent = participant.vote;
-  } else if (participant.status === 'disconnected') {
-    voteContent = '-';
-    voteClass += ' participant-card__vote--empty';
+  // Front face content (before reveal)
+  let frontContent: string;
+  let frontClass = 'participant-card__vote-face participant-card__vote-face--front';
+  if (participant.status === 'disconnected') {
+    frontContent = '-';
+    frontClass += ' participant-card__vote--empty';
   } else if (participant.hasVoted) {
-    voteContent = '\u2713';
-    voteClass += ' participant-card__vote--check';
+    frontContent = '\u2713';
+    frontClass += ' participant-card__vote--check';
   } else {
-    voteContent = '';
-    voteClass += ' participant-card__vote--empty';
+    frontContent = '';
+    frontClass += ' participant-card__vote--empty';
   }
+
+  // Back face content (after reveal)
+  const backContent = participant.vote ?? '';
+
+  const flipperClasses = [
+    'participant-card__vote-flipper',
+    showFlip && 'participant-card__vote-flipper--revealed',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div class={cardClasses}>
       <span class={`participant-card__status participant-card__status--${participant.status}`} />
       <span class="participant-card__name">{participant.userName}</span>
-      <span class={voteClass}>{voteContent}</span>
+      <div
+        class={flipperClasses}
+        style={`--flip-delay: ${index * 0.08}s`}
+      >
+        <span class={frontClass}>{frontContent}</span>
+        <span class="participant-card__vote-face participant-card__vote-face--back">
+          {backContent}
+        </span>
+      </div>
     </div>
   );
 }

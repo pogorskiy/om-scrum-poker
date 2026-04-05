@@ -19,8 +19,8 @@ export function ParticipantList() {
 
   return (
     <div class="participant-list">
-      {sorted.map((p) => (
-        <ParticipantCard key={p.sessionId} participant={p} />
+      {sorted.map((p, i) => (
+        <ParticipantCard key={p.sessionId} participant={p} index={i} />
       ))}
     </div>
   );
