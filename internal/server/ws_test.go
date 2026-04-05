@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"testing"
 	"time"
 
@@ -58,7 +59,7 @@ func TestHandleUpdateName_NotJoined(t *testing.T) {
 func TestHandleUpdateName_RoomNotFound(t *testing.T) {
 	rm := NewRoomManager()
 	c := fakeClient("nonexistent-room", rm)
-	c.sessionID = "sess-1"
+	c.SetSessionID("sess-1")
 
 	payload, _ := json.Marshal(UpdateNamePayload{UserName: "New Name"})
 	handleUpdateName(c, rm, payload)
@@ -78,7 +79,7 @@ func TestHandleUpdateName_InvalidPayload(t *testing.T) {
 	rm := NewRoomManager()
 	rm.GetOrCreateRoom("room-1", "Test")
 	c := fakeClient("room-1", rm)
-	c.sessionID = "sess-1"
+	c.SetSessionID("sess-1")
 
 	// Send malformed JSON as payload.
 	handleUpdateName(c, rm, json.RawMessage(`{invalid json`))
@@ -102,7 +103,7 @@ func TestHandleUpdateName_EmptyUserName(t *testing.T) {
 	room.Unlock()
 
 	c := fakeClient("room-1", rm)
-	c.sessionID = "sess-1"
+	c.SetSessionID("sess-1")
 	rm.RegisterClient("room-1", c)
 
 	payload, _ := json.Marshal(UpdateNamePayload{UserName: ""})
@@ -128,9 +129,9 @@ func TestHandleUpdateName_Success_BroadcastsToAllClients(t *testing.T) {
 	room.Unlock()
 
 	c1 := fakeClient("room-1", rm)
-	c1.sessionID = "sess-1"
+	c1.SetSessionID("sess-1")
 	c2 := fakeClient("room-1", rm)
-	c2.sessionID = "sess-2"
+	c2.SetSessionID("sess-2")
 	rm.RegisterClient("room-1", c1)
 	rm.RegisterClient("room-1", c2)
 
@@ -164,7 +165,7 @@ func TestHandleUpdateName_Success_UpdatesDomainModel(t *testing.T) {
 	room.Unlock()
 
 	c := fakeClient("room-1", rm)
-	c.sessionID = "sess-1"
+	c.SetSessionID("sess-1")
 	rm.RegisterClient("room-1", c)
 
 	payload, _ := json.Marshal(UpdateNamePayload{UserName: "Alice Renamed"})
@@ -189,7 +190,7 @@ func TestHandleUpdateName_ParticipantNotInRoom(t *testing.T) {
 	// Room exists but participant "sess-ghost" is not in it.
 
 	c := fakeClient("room-1", rm)
-	c.sessionID = "sess-ghost"
+	c.SetSessionID("sess-ghost")
 
 	payload, _ := json.Marshal(UpdateNamePayload{UserName: "Ghost"})
 	handleUpdateName(c, rm, payload)
@@ -213,9 +214,9 @@ func TestHandleUpdateName_NoExtraMessagesOnError(t *testing.T) {
 	room.Unlock()
 
 	c1 := fakeClient("room-1", rm)
-	c1.sessionID = "sess-1"
+	c1.SetSessionID("sess-1")
 	c2 := fakeClient("room-1", rm)
-	c2.sessionID = "sess-2"
+	c2.SetSessionID("sess-2")
 	rm.RegisterClient("room-1", c1)
 	rm.RegisterClient("room-1", c2)
 
@@ -244,9 +245,9 @@ func TestHandleLeave_RemovesParticipant(t *testing.T) {
 	room.Unlock()
 
 	c1 := fakeClient("room-1", rm)
-	c1.sessionID = "sess-1"
+	c1.SetSessionID("sess-1")
 	c2 := fakeClient("room-1", rm)
-	c2.sessionID = "sess-2"
+	c2.SetSessionID("sess-2")
 	rm.RegisterClient("room-1", c1)
 	rm.RegisterClient("room-1", c2)
 
@@ -286,7 +287,7 @@ func TestHandleLeave_NotJoined(t *testing.T) {
 	// sessionID is empty — client has not joined.
 
 	c2 := fakeClient("room-1", rm)
-	c2.sessionID = "sess-2"
+	c2.SetSessionID("sess-2")
 	rm.RegisterClient("room-1", c2)
 
 	// Should be a no-op, no panic, no broadcast.
@@ -299,7 +300,7 @@ func TestHandleLeave_NotJoined(t *testing.T) {
 func TestHandleLeave_RoomNotFound(t *testing.T) {
 	rm := NewRoomManager()
 	c := fakeClient("nonexistent", rm)
-	c.sessionID = "sess-1"
+	c.SetSessionID("sess-1")
 
 	// Should be a no-op, no panic.
 	handleLeave(c, rm)
@@ -312,7 +313,7 @@ func TestHandleLeave_UnregistersClient(t *testing.T) {
 	rm.GetOrCreateRoom("room-1", "Test")
 
 	c := fakeClient("room-1", rm)
-	c.sessionID = "sess-1"
+	c.SetSessionID("sess-1")
 	rm.RegisterClient("room-1", c)
 
 	if rm.ConnectionCount() != 1 {
@@ -325,8 +326,8 @@ func TestHandleLeave_UnregistersClient(t *testing.T) {
 		t.Errorf("expected 0 connections after leave, got %d", rm.ConnectionCount())
 	}
 	// sessionID should be cleared after leave.
-	if c.sessionID != "" {
-		t.Errorf("expected empty sessionID after leave, got %q", c.sessionID)
+	if c.SessionID() != "" {
+		t.Errorf("expected empty sessionID after leave, got %q", c.SessionID())
 	}
 }
 
@@ -349,7 +350,7 @@ func TestHandleJoin_Rejoin_RestoresActiveStatus(t *testing.T) {
 
 	// Set up a second client to observe broadcasts.
 	c2 := fakeClient("room-1", rm)
-	c2.sessionID = "sess-2"
+	c2.SetSessionID("sess-2")
 	rm.RegisterClient("room-1", c2)
 
 	// Rejoin with a new client (same sessionID).
@@ -514,7 +515,7 @@ func TestHandlePresence_InvalidStatus(t *testing.T) {
 	room.Unlock()
 
 	c := fakeClient("room-1", rm)
-	c.sessionID = "sess-1"
+	c.SetSessionID("sess-1")
 	rm.RegisterClient("room-1", c)
 
 	payload, _ := json.Marshal(PresencePayload{Status: "banana"})
@@ -541,7 +542,7 @@ func TestDispatch_LeaveEvent(t *testing.T) {
 	room.Unlock()
 
 	c := fakeClient("room-1", rm)
-	c.sessionID = "sess-1"
+	c.SetSessionID("sess-1")
 	rm.RegisterClient("room-1", c)
 
 	env := &Envelope{Type: "leave"}
@@ -575,5 +576,39 @@ func TestDispatch_UnknownEvent(t *testing.T) {
 	json.Unmarshal(msg.Payload, &errPayload)
 	if errPayload.Code != "invalid_message" {
 		t.Errorf("expected error code %q, got %q", "invalid_message", errPayload.Code)
+	}
+}
+
+// TestClient_SessionID_ConcurrentAccess verifies that concurrent reads and writes
+// to the client's sessionID do not cause a data race.
+func TestClient_SessionID_ConcurrentAccess(t *testing.T) {
+	rm := NewRoomManager()
+	c := fakeClient("room-1", rm)
+
+	var wg sync.WaitGroup
+	const goroutines = 50
+
+	// Half the goroutines write, half read.
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		if i%2 == 0 {
+			go func(id int) {
+				defer wg.Done()
+				c.SetSessionID("sess-" + string(rune('A'+id)))
+			}(i)
+		} else {
+			go func() {
+				defer wg.Done()
+				_ = c.SessionID()
+			}()
+		}
+	}
+
+	wg.Wait()
+
+	// Verify we can still read/write without issues.
+	c.SetSessionID("final")
+	if got := c.SessionID(); got != "final" {
+		t.Errorf("expected sessionID %q, got %q", "final", got)
 	}
 }

@@ -72,17 +72,18 @@ func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, trustProxy bool
 		client.Close()
 		manager.UnregisterClient(roomID, client)
 
-		if client.sessionID != "" {
+		sid := client.SessionID()
+		if sid != "" {
 			room := manager.GetRoom(roomID)
 			if room != nil {
 				room.Lock()
-				if p, ok := room.Participants[client.sessionID]; ok {
+				if p, ok := room.Participants[sid]; ok {
 					p.Status = "disconnected"
 				}
 				room.Unlock()
 
 				msg, _ := MakeEnvelope("presence_changed", PresenceChangedPayload{
-					SessionID: client.sessionID,
+					SessionID: sid,
 					Status:    "disconnected",
 				})
 				if msg != nil {
@@ -106,7 +107,7 @@ func readPump(ctx context.Context, client *Client, manager *RoomManager, limiter
 			if ctx.Err() != nil {
 				return
 			}
-			log.Printf("client %s: read error: %v", client.sessionID, err)
+			log.Printf("client %s: read error: %v", client.SessionID(), err)
 			return
 		}
 
@@ -186,7 +187,7 @@ func handleJoin(client *Client, manager *RoomManager, limiter *RateLimiter, ip s
 	}
 	_ = participant
 
-	client.sessionID = p.SessionID
+	client.SetSessionID(p.SessionID)
 	manager.RegisterClient(client.roomID, client)
 
 	// Send full room state to the joining client.
@@ -221,7 +222,7 @@ func handleJoin(client *Client, manager *RoomManager, limiter *RateLimiter, ip s
 }
 
 func handleVote(client *Client, manager *RoomManager, payload json.RawMessage) {
-	if client.sessionID == "" {
+	if client.SessionID() == "" {
 		client.SendError("invalid_message", "must join before voting")
 		return
 	}
@@ -239,8 +240,8 @@ func handleVote(client *Client, manager *RoomManager, payload json.RawMessage) {
 	}
 
 	room.Lock()
-	hadVote := room.HasVoted(client.sessionID)
-	err := room.CastVote(client.sessionID, domain.VoteValue(p.Value))
+	hadVote := room.HasVoted(client.SessionID())
+	err := room.CastVote(client.SessionID(), domain.VoteValue(p.Value))
 	room.Unlock()
 
 	if err != nil {
@@ -249,12 +250,12 @@ func handleVote(client *Client, manager *RoomManager, payload json.RawMessage) {
 	}
 
 	if p.Value == "" && hadVote {
-		msg, _ := MakeEnvelope("vote_retracted", VoteRetractedPayload{SessionID: client.sessionID})
+		msg, _ := MakeEnvelope("vote_retracted", VoteRetractedPayload{SessionID: client.SessionID()})
 		if msg != nil {
 			manager.Broadcast(client.roomID, msg)
 		}
 	} else if p.Value != "" {
-		msg, _ := MakeEnvelope("vote_cast", VoteCastPayload{SessionID: client.sessionID})
+		msg, _ := MakeEnvelope("vote_cast", VoteCastPayload{SessionID: client.SessionID()})
 		if msg != nil {
 			manager.Broadcast(client.roomID, msg)
 		}
@@ -262,7 +263,7 @@ func handleVote(client *Client, manager *RoomManager, payload json.RawMessage) {
 }
 
 func handleReveal(client *Client, manager *RoomManager) {
-	if client.sessionID == "" {
+	if client.SessionID() == "" {
 		client.SendError("invalid_message", "must join first")
 		return
 	}
@@ -289,7 +290,7 @@ func handleReveal(client *Client, manager *RoomManager) {
 }
 
 func handleNewRound(client *Client, manager *RoomManager) {
-	if client.sessionID == "" {
+	if client.SessionID() == "" {
 		client.SendError("invalid_message", "must join first")
 		return
 	}
@@ -311,7 +312,7 @@ func handleNewRound(client *Client, manager *RoomManager) {
 }
 
 func handleClearRoom(client *Client, manager *RoomManager) {
-	if client.sessionID == "" {
+	if client.SessionID() == "" {
 		client.SendError("invalid_message", "must join first")
 		return
 	}
@@ -334,7 +335,7 @@ func handleClearRoom(client *Client, manager *RoomManager) {
 }
 
 func handleUpdateName(client *Client, manager *RoomManager, payload json.RawMessage) {
-	if client.sessionID == "" {
+	if client.SessionID() == "" {
 		client.SendError("invalid_message", "must join first")
 		return
 	}
@@ -352,7 +353,7 @@ func handleUpdateName(client *Client, manager *RoomManager, payload json.RawMess
 	}
 
 	room.Lock()
-	err := room.UpdateName(client.sessionID, p.UserName)
+	err := room.UpdateName(client.SessionID(), p.UserName)
 	room.Unlock()
 
 	if err != nil {
@@ -361,7 +362,7 @@ func handleUpdateName(client *Client, manager *RoomManager, payload json.RawMess
 	}
 
 	msg, _ := MakeEnvelope("name_updated", NameUpdatedPayload{
-		SessionID: client.sessionID,
+		SessionID: client.SessionID(),
 		UserName:  p.UserName,
 	})
 	if msg != nil {
@@ -370,7 +371,7 @@ func handleUpdateName(client *Client, manager *RoomManager, payload json.RawMess
 }
 
 func handlePresence(client *Client, manager *RoomManager, payload json.RawMessage) {
-	if client.sessionID == "" {
+	if client.SessionID() == "" {
 		client.SendError("invalid_message", "must join first")
 		return
 	}
@@ -388,7 +389,7 @@ func handlePresence(client *Client, manager *RoomManager, payload json.RawMessag
 	}
 
 	room.Lock()
-	err := room.UpdatePresence(client.sessionID, p.Status)
+	err := room.UpdatePresence(client.SessionID(), p.Status)
 	room.Unlock()
 
 	if err != nil {
@@ -397,7 +398,7 @@ func handlePresence(client *Client, manager *RoomManager, payload json.RawMessag
 	}
 
 	msg, _ := MakeEnvelope("presence_changed", PresenceChangedPayload{
-		SessionID: client.sessionID,
+		SessionID: client.SessionID(),
 		Status:    p.Status,
 	})
 	if msg != nil {
@@ -406,7 +407,7 @@ func handlePresence(client *Client, manager *RoomManager, payload json.RawMessag
 }
 
 func handleLeave(client *Client, manager *RoomManager) {
-	if client.sessionID == "" {
+	if client.SessionID() == "" {
 		return
 	}
 
@@ -416,16 +417,16 @@ func handleLeave(client *Client, manager *RoomManager) {
 	}
 
 	room.Lock()
-	room.Leave(client.sessionID)
+	room.Leave(client.SessionID())
 	room.Unlock()
 
-	msg, _ := MakeEnvelope("participant_left", ParticipantLeftPayload{SessionID: client.sessionID})
+	msg, _ := MakeEnvelope("participant_left", ParticipantLeftPayload{SessionID: client.SessionID()})
 	if msg != nil {
 		manager.BroadcastExcept(client.roomID, msg, client)
 	}
 
 	manager.UnregisterClient(client.roomID, client)
-	client.sessionID = ""
+	client.SetSessionID("")
 }
 
 // clientIP extracts the client IP from the request.

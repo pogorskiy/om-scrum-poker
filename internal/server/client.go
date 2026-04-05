@@ -20,11 +20,26 @@ const (
 type Client struct {
 	conn      *websocket.Conn
 	send      chan []byte
+	mu        sync.Mutex // protects sessionID
 	sessionID string
 	roomID    string
 	manager   *RoomManager
 	closeOnce sync.Once
 	done      chan struct{}
+}
+
+// SessionID returns the current session ID (thread-safe).
+func (c *Client) SessionID() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.sessionID
+}
+
+// SetSessionID updates the session ID (thread-safe).
+func (c *Client) SetSessionID(id string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.sessionID = id
 }
 
 // NewClient creates a client bound to a WebSocket connection.
@@ -43,7 +58,7 @@ func (c *Client) Send(msg []byte) {
 	select {
 	case c.send <- msg:
 	default:
-		log.Printf("client %s: send buffer full, dropping message", c.sessionID)
+		log.Printf("client %s: send buffer full, dropping message", c.SessionID())
 	}
 }
 
@@ -51,7 +66,7 @@ func (c *Client) Send(msg []byte) {
 func (c *Client) SendError(code, message string) {
 	msg, err := MakeEnvelope("error", ErrorPayload{Code: code, Message: message})
 	if err != nil {
-		log.Printf("client %s: failed to create error message: %v", c.sessionID, err)
+		log.Printf("client %s: failed to create error message: %v", c.SessionID(), err)
 		return
 	}
 	c.Send(msg)
@@ -83,7 +98,7 @@ func (c *Client) WritePump(ctx context.Context) {
 			err := c.conn.Write(writeCtx, websocket.MessageText, msg)
 			cancel()
 			if err != nil {
-				log.Printf("client %s: write error: %v", c.sessionID, err)
+				log.Printf("client %s: write error: %v", c.SessionID(), err)
 				return
 			}
 		case <-ticker.C:
@@ -91,12 +106,12 @@ func (c *Client) WritePump(ctx context.Context) {
 			err := c.conn.Ping(pingCtx)
 			cancel()
 			if err != nil {
-				log.Printf("client %s: ping error: %v", c.sessionID, err)
+				log.Printf("client %s: ping error: %v", c.SessionID(), err)
 				return
 			}
 			// Update last ping time for the participant.
-			if c.sessionID != "" {
-				c.manager.UpdatePingTime(c.roomID, c.sessionID)
+			if sid := c.SessionID(); sid != "" {
+				c.manager.UpdatePingTime(c.roomID, sid)
 			}
 		}
 	}
