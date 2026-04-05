@@ -30,6 +30,42 @@
   white-space: nowrap;
 }
 
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.header__user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 150px;
+}
+
+.header__edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs);
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 150ms, background 150ms;
+  flex-shrink: 0;
+}
+
+.header__edit-btn:hover {
+  color: var(--color-primary);
+  background: var(--color-border);
+}
+
 .header__copy-btn {
   padding: var(--space-sm) var(--space-md);
   background: var(--color-surface);
