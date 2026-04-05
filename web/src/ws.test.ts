@@ -126,6 +126,37 @@ describe('ws.ts reconnect logic', () => {
     expect(reconnectInfo.value).toEqual({ attempt: 0, maxReached: false });
   });
 
+  it('sends leave message before closing on disconnect()', () => {
+    connect('test-room');
+    const ws = latestWs();
+    ws.onopen?.(new Event('open'));
+
+    expect(ws.readyState).toBe(MockWebSocket.OPEN);
+
+    disconnect();
+
+    // Should have sent a leave message before closing
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'leave', payload: {} }),
+    );
+    // send should be called before close
+    const sendOrder = ws.send.mock.invocationCallOrder[0];
+    const closeOrder = ws.close.mock.invocationCallOrder[0];
+    expect(sendOrder).toBeLessThan(closeOrder);
+  });
+
+  it('does not send leave message if socket is not open', () => {
+    connect('test-room');
+    const ws = latestWs();
+    // Socket never opened (readyState stays OPEN by default in mock,
+    // so set it to CLOSED to simulate)
+    ws.readyState = MockWebSocket.CLOSED;
+
+    disconnect();
+
+    expect(ws.send).not.toHaveBeenCalled();
+  });
+
   it('continues reconnecting after RECONNECT_TIMEOUT (does NOT stop)', () => {
     connect('test-room');
     latestWs().onopen?.(new Event('open'));

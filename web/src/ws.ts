@@ -310,6 +310,10 @@ export function disconnect(): void {
     reconnectTimer = null;
   }
   if (socket) {
+    // Send leave before closing so the server removes the participant immediately
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'leave', payload: {} }));
+    }
     socket.onclose = null;
     socket.onerror = null;
     socket.onmessage = null;
