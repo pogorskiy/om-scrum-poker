@@ -1,0 +1,21 @@
+.footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  margin-top: auto;
+}
+
+.footer__text {
+  font-size: 11px;
+  color: var(--color-text);
+  opacity: 0.4;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.footer__time {
+  color: inherit;
+  font: inherit;
+}
