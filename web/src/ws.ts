@@ -16,6 +16,7 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
 let reconnectStartTime = 0;
 let currentRoomId = '';
+let isFirstRoomState = true;
 const messageQueue: ClientMessage[] = [];
 
 const MAX_RECONNECT_DELAY = 10000;
@@ -74,6 +75,11 @@ function handleMessage(event: MessageEvent): void {
         }));
       }
       roomState.value = msg.payload;
+      // Show a hint when joining an empty room via shared link
+      if (isFirstRoomState && msg.payload.participants.length <= 1) {
+        addToast('You started a new room. Share the link to invite others.');
+      }
+      isFirstRoomState = false;
       // Restore selected card if we have a vote
       if (msg.payload.phase === 'voting') {
         const me = msg.payload.participants.find((p: Participant) => p.sessionId === sessionId.value);
@@ -183,10 +189,11 @@ function handleMessage(event: MessageEvent): void {
 
     case 'room_cleared': {
       selectedCard.value = '';
-      roomState.value = null;
       addToast('Room cleared');
       // Re-join so the server re-creates our participant entry.
       // Dead clients won't re-join and are effectively removed.
+      // Do NOT set roomState to null — it causes a flash of "Connecting..." UI.
+      // The server will send a fresh room_state after our join.
       send({
         type: 'join',
         payload: { sessionId: sessionId.value, userName: userName.value },
@@ -267,6 +274,7 @@ function closeSocket(): void {
 export function connect(roomId: string): void {
   closeSocket();
   currentRoomId = roomId;
+  isFirstRoomState = true;
   connectionStatus.value = 'connecting';
 
   if (reconnectAttempt === 0) {
