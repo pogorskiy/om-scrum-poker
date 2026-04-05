@@ -14,7 +14,7 @@ function formatDeployTime(isoString: string): string {
     timeZone: 'UTC',
   };
 
-  return date.toLocaleDateString('en-US', options).replace(',', '') + ' UTC';
+  return date.toLocaleDateString('en-US', options) + ' UTC';
 }
 
 export function Footer() {
