@@ -57,7 +57,7 @@ func (rm *RoomManager) collectGarbage() {
 	now := time.Now()
 	for id, room := range rm.rooms {
 		clients := rm.clients[id]
-		if len(clients) == 0 && now.Sub(room.LastActivity) > roomExpiry {
+		if len(clients) == 0 && now.Sub(room.GetLastActivity()) > roomExpiry {
 			delete(rm.rooms, id)
 			delete(rm.clients, id)
 			log.Printf("GC: removed stale room %s", id)

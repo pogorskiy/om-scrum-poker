@@ -290,14 +290,14 @@ func TestUpdateName_UpdatesLastActivity(t *testing.T) {
 	r, _ := NewRoom("room1", "Test")
 	r.Join("s1", "Alice")
 
-	before := r.LastActivity
+	before := r.GetLastActivity()
 	time.Sleep(1 * time.Millisecond)
 
 	err := r.UpdateName("s1", "Bob")
 	if err != nil {
 		t.Fatalf("UpdateName() unexpected error: %v", err)
 	}
-	if !r.LastActivity.After(before) {
+	if !r.GetLastActivity().After(before) {
 		t.Error("expected LastActivity to be updated after name change")
 	}
 }
@@ -361,5 +361,78 @@ func TestActiveConnections(t *testing.T) {
 	r.Participants["s2"].Status = "disconnected"
 	if got := r.ActiveConnections(); got != 2 {
 		t.Errorf("expected 2 active, got %d", got)
+	}
+}
+
+func TestTouchActivity(t *testing.T) {
+	r, _ := NewRoom("room1", "Test")
+	before := r.GetLastActivity()
+	time.Sleep(1 * time.Millisecond)
+
+	r.TouchActivity()
+
+	after := r.GetLastActivity()
+	if !after.After(before) {
+		t.Error("TouchActivity should advance the timestamp")
+	}
+}
+
+func TestGetLastActivity_ReasonableTime(t *testing.T) {
+	now := time.Now()
+	r, _ := NewRoom("room1", "Test")
+	got := r.GetLastActivity()
+
+	if got.Before(now.Add(-1*time.Second)) || got.After(now.Add(1*time.Second)) {
+		t.Errorf("GetLastActivity() = %v, want within 1s of %v", got, now)
+	}
+}
+
+func TestLastActivityUnixNano(t *testing.T) {
+	r, _ := NewRoom("room1", "Test")
+	nanos := r.LastActivityUnixNano()
+	if nanos <= 0 {
+		t.Errorf("LastActivityUnixNano() = %d, want > 0", nanos)
+	}
+}
+
+func TestSetLastActivity(t *testing.T) {
+	r, _ := NewRoom("room1", "Test")
+	past := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	r.SetLastActivity(past)
+	got := r.GetLastActivity()
+	if !got.Equal(past) {
+		t.Errorf("SetLastActivity/GetLastActivity roundtrip: got %v, want %v", got, past)
+	}
+}
+
+func TestAllOperationsUpdateLastActivity(t *testing.T) {
+	r, _ := NewRoom("room1", "Test")
+	r.Join("s1", "Alice")
+
+	ops := []struct {
+		name string
+		fn   func()
+	}{
+		{"Join", func() { r.Join("s2", "Bob") }},
+		{"Leave", func() { r.Leave("s2") }},
+		{"CastVote", func() { r.CastVote("s1", "5") }},
+		{"Reveal", func() { r.Reveal() }},
+		{"NewRound", func() { r.NewRound() }},
+		{"ClearRoom", func() {
+			r.ClearRoom()
+			r.Join("s1", "Alice") // re-join for subsequent ops
+		}},
+		{"UpdateName", func() { r.UpdateName("s1", "Alicia") }},
+		{"UpdatePresence", func() { r.UpdatePresence("s1", "idle") }},
+	}
+
+	for _, op := range ops {
+		before := r.GetLastActivity()
+		time.Sleep(1 * time.Millisecond)
+		op.fn()
+		after := r.GetLastActivity()
+		if !after.After(before) {
+			t.Errorf("%s: expected LastActivity to advance", op.name)
+		}
 	}
 }

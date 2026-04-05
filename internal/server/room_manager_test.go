@@ -329,7 +329,7 @@ func TestCollectGarbage_RemovesStaleEmptyRooms(t *testing.T) {
 	room, _ := rm.GetOrCreateRoom("stale-room", "Stale")
 
 	// Make the room appear old.
-	room.LastActivity = time.Now().Add(-25 * time.Hour)
+	room.SetLastActivity(time.Now().Add(-25 * time.Hour))
 
 	rm.collectGarbage()
 
@@ -347,7 +347,7 @@ func TestCollectGarbage_KeepsRoomWithClients(t *testing.T) {
 	rm.RegisterClient("active-room", c)
 
 	// Make the room appear old.
-	room.LastActivity = time.Now().Add(-25 * time.Hour)
+	room.SetLastActivity(time.Now().Add(-25 * time.Hour))
 
 	rm.collectGarbage()
 

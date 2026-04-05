@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -56,8 +57,28 @@ type Room struct {
 	Phase        Phase
 	Participants map[string]*Participant // keyed by SessionID
 	CreatedAt    time.Time
-	LastActivity time.Time
+	lastActivity atomic.Int64
 	mu           sync.Mutex
+}
+
+// TouchActivity updates the last activity timestamp to now.
+func (r *Room) TouchActivity() {
+	r.lastActivity.Store(time.Now().UnixNano())
+}
+
+// GetLastActivity returns the last activity time.
+func (r *Room) GetLastActivity() time.Time {
+	return time.Unix(0, r.lastActivity.Load())
+}
+
+// LastActivityUnixNano returns the raw atomic value of last activity.
+func (r *Room) LastActivityUnixNano() int64 {
+	return r.lastActivity.Load()
+}
+
+// SetLastActivity sets the last activity timestamp to the given time.
+func (r *Room) SetLastActivity(t time.Time) {
+	r.lastActivity.Store(t.UnixNano())
 }
 
 // NewRoom creates a room with the given ID and name.
@@ -68,15 +89,15 @@ func NewRoom(id, name string) (*Room, error) {
 	if len(name) > MaxRoomName {
 		name = name[:MaxRoomName]
 	}
-	now := time.Now()
-	return &Room{
+	r := &Room{
 		ID:           id,
 		Name:         name,
 		Phase:        PhaseVoting,
 		Participants: make(map[string]*Participant),
-		CreatedAt:    now,
-		LastActivity: now,
-	}, nil
+		CreatedAt:    time.Now(),
+	}
+	r.TouchActivity()
+	return r, nil
 }
 
 // Lock acquires the room mutex.
@@ -100,7 +121,7 @@ func (r *Room) Join(sessionID, name string) (*Participant, bool, error) {
 		p.Name = name
 		p.Status = "active"
 		p.LastPing = time.Now()
-		r.LastActivity = time.Now()
+		r.TouchActivity()
 		return p, false, nil
 	}
 
@@ -116,7 +137,7 @@ func (r *Room) Join(sessionID, name string) (*Participant, bool, error) {
 		LastPing:  time.Now(),
 	}
 	r.Participants[sessionID] = p
-	r.LastActivity = time.Now()
+	r.TouchActivity()
 	return p, true, nil
 }
 
@@ -127,7 +148,7 @@ func (r *Room) Leave(sessionID string) bool {
 		return false
 	}
 	delete(r.Participants, sessionID)
-	r.LastActivity = time.Now()
+	r.TouchActivity()
 	return true
 }
 
@@ -145,7 +166,7 @@ func (r *Room) CastVote(sessionID string, value VoteValue) error {
 		return fmt.Errorf("room_not_found: participant not in room")
 	}
 	p.Vote = value
-	r.LastActivity = time.Now()
+	r.TouchActivity()
 	return nil
 }
 
@@ -156,7 +177,7 @@ func (r *Room) Reveal() (*RoundResult, error) {
 		return nil, fmt.Errorf("already in reveal phase")
 	}
 	r.Phase = PhaseReveal
-	r.LastActivity = time.Now()
+	r.TouchActivity()
 	return CalculateResult(r.Participants), nil
 }
 
@@ -167,7 +188,7 @@ func (r *Room) NewRound() {
 		p.Vote = ""
 	}
 	r.Phase = PhaseVoting
-	r.LastActivity = time.Now()
+	r.TouchActivity()
 }
 
 // ClearRoom removes all participants and resets the phase.
@@ -176,7 +197,7 @@ func (r *Room) NewRound() {
 func (r *Room) ClearRoom() {
 	r.Participants = make(map[string]*Participant)
 	r.Phase = PhaseVoting
-	r.LastActivity = time.Now()
+	r.TouchActivity()
 }
 
 // UpdateName changes a participant's display name.
@@ -193,7 +214,7 @@ func (r *Room) UpdateName(sessionID, name string) error {
 		return fmt.Errorf("room_not_found: participant not in room")
 	}
 	p.Name = name
-	r.LastActivity = time.Now()
+	r.TouchActivity()
 	return nil
 }
 
@@ -209,7 +230,7 @@ func (r *Room) UpdatePresence(sessionID, status string) error {
 	}
 	p.Status = status
 	p.LastPing = time.Now()
-	r.LastActivity = time.Now()
+	r.TouchActivity()
 	return nil
 }
 

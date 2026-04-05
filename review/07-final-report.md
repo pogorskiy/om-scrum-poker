@@ -218,7 +218,9 @@
 - **Effort:** low
 - **Корректировка адвоката:** 82 -> 55. Проблема реальна, но окно гонки огромно, исправление тривиально.
 
-### [55] Двойной lock: RoomManager.mu и Room.mu — data race на LastActivity
+### ~~[55] Двойной lock: RoomManager.mu и Room.mu — data race на LastActivity~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05)
+- **Решение:** Replaced `LastActivity time.Time` with private `lastActivity atomic.Int64` storing `time.UnixNano()`. Added thread-safe accessor methods: `TouchActivity()`, `GetLastActivity()`, `LastActivityUnixNano()`, `SetLastActivity()`. All reads/writes are now lock-free via atomics. Concurrent access test added (`room_race_test.go`). Race detector passes clean.
 - **Severity:** MEDIUM
 - **Источники:** бекенд, архитектор, адвокат дьявола
 - **Файл:** internal/server/room_manager.go:53-66, internal/server/ws.go:147-179
