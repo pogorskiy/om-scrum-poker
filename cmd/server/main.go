@@ -14,12 +14,15 @@ import (
 	"om-scrum-poker/web"
 )
 
+var buildTime = "dev"
+
 func main() {
 	config := server.Config{
 		Host:           getEnv("HOST", "0.0.0.0"),
 		Port:           getEnv("PORT", "8080"),
 		TrustProxy:     strings.EqualFold(getEnv("TRUST_PROXY", "false"), "true"),
 		AllowedOrigins: parseAllowedOrigins(getEnv("ALLOWED_ORIGINS", "")),
+		BuildTime:      buildTime,
 	}
 
 	manager := server.NewRoomManager()

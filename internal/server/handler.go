@@ -19,6 +19,7 @@ type Config struct {
 	Port           string
 	TrustProxy     bool
 	AllowedOrigins []string
+	BuildTime      string
 }
 
 // HealthResponse is returned by the health endpoint.
@@ -27,6 +28,7 @@ type HealthResponse struct {
 	Rooms       int    `json:"rooms"`
 	Connections int    `json:"connections"`
 	Uptime      string `json:"uptime"`
+	BuildTime   string `json:"build_time"`
 }
 
 // NewServer creates and configures the HTTP server.
@@ -36,7 +38,7 @@ func NewServer(config Config, manager *RoomManager, limiter *RateLimiter, embedF
 	mux := http.NewServeMux()
 
 	// Health check.
-	mux.HandleFunc("/health", handleHealth(manager))
+	mux.HandleFunc("/health", handleHealth(manager, config.BuildTime))
 
 	// WebSocket endpoint.
 	mux.HandleFunc("/ws/", HandleWebSocket(manager, limiter, config.TrustProxy, config.AllowedOrigins))
@@ -53,7 +55,7 @@ func NewServer(config Config, manager *RoomManager, limiter *RateLimiter, embedF
 	}
 }
 
-func handleHealth(manager *RoomManager) http.HandlerFunc {
+func handleHealth(manager *RoomManager, buildTime string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -65,6 +67,7 @@ func handleHealth(manager *RoomManager) http.HandlerFunc {
 			Rooms:       manager.RoomCount(),
 			Connections: manager.ConnectionCount(),
 			Uptime:      manager.Uptime().Round(time.Second).String(),
+			BuildTime:   buildTime,
 		}
 
 		w.Header().Set("Content-Type", "application/json")

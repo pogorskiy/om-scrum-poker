@@ -16,7 +16,7 @@ build-frontend:
 	cd web && npm ci && npm run build
 
 build-backend:
-	go build -o om-scrum-poker ./cmd/server
+	go build -ldflags "-X main.buildTime=$$(date -u '+%Y-%m-%dT%H:%M:%SZ')" -o om-scrum-poker ./cmd/server
 
 # Tests
 test:
