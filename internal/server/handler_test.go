@@ -267,3 +267,62 @@ func TestLogMiddleware(t *testing.T) {
 		t.Errorf("body = %q, want %q", string(body), "ok")
 	}
 }
+
+func TestHandleHealth_AfterClientDisconnect(t *testing.T) {
+	rm := NewRoomManager()
+	rm.GetOrCreateRoom("room-1", "Test")
+
+	c := fakeClient("room-1", rm)
+	rm.RegisterClient("room-1", c)
+
+	if rm.ConnectionCount() != 1 {
+		t.Fatalf("expected 1 connection before unregister, got %d", rm.ConnectionCount())
+	}
+
+	// Simulate client disconnect by unregistering.
+	rm.UnregisterClient("room-1", c)
+
+	handler := handleHealth(rm)
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	body, _ := io.ReadAll(w.Result().Body)
+	var hr HealthResponse
+	json.Unmarshal(body, &hr)
+
+	if hr.Connections != 0 {
+		t.Errorf("connections = %d, want 0 after client disconnect", hr.Connections)
+	}
+	if hr.Rooms != 1 {
+		t.Errorf("rooms = %d, want 1 (room still exists)", hr.Rooms)
+	}
+}
+
+func TestHandleHealth_MultipleRoomsMultipleClients(t *testing.T) {
+	rm := NewRoomManager()
+	rm.GetOrCreateRoom("room-1", "Room 1")
+	rm.GetOrCreateRoom("room-2", "Room 2")
+	rm.GetOrCreateRoom("room-3", "Room 3")
+
+	// 2 clients in room-1, 1 client in room-2, 0 in room-3.
+	rm.RegisterClient("room-1", fakeClient("room-1", rm))
+	rm.RegisterClient("room-1", fakeClient("room-1", rm))
+	rm.RegisterClient("room-2", fakeClient("room-2", rm))
+
+	handler := handleHealth(rm)
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	body, _ := io.ReadAll(w.Result().Body)
+	var hr HealthResponse
+	json.Unmarshal(body, &hr)
+
+	if hr.Rooms != 3 {
+		t.Errorf("rooms = %d, want 3", hr.Rooms)
+	}
+	if hr.Connections != 3 {
+		t.Errorf("connections = %d, want 3", hr.Connections)
+	}
+}
