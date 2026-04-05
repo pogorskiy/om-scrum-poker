@@ -2,6 +2,7 @@ import { useEffect } from 'preact/hooks';
 import { currentPath } from './state';
 import { HomePage } from './components/HomePage/HomePage';
 import { RoomPage } from './components/RoomPage/RoomPage';
+import { Footer } from './components/Footer/Footer';
 import { Toast } from './components/Toast/Toast';
 
 export function App() {
@@ -27,6 +28,7 @@ export function App() {
   return (
     <>
       {page}
+      <Footer />
       <Toast />
     </>
   );
