@@ -205,7 +205,9 @@
 - **Рекомендация:** Добавить "Real-time planning poker for agile teams".
 - **Effort:** low
 
-### [55] Race condition: доступ к client.sessionID без синхронизации
+### ~~[55] Race condition: доступ к client.sessionID без синхронизации~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `93fa153`)
+- **Решение:** Added `sync.Mutex`-protected `SessionID()`/`SetSessionID()` accessors to Client struct. All reads/writes in client.go and ws.go now go through thread-safe methods. Concurrent access test added. Race detector passes clean.
 - **Severity:** MEDIUM
 - **Источники:** бекенд, адвокат дьявола
 - **Файл:** internal/server/ws.go:60-77, internal/server/client.go:21-23
@@ -299,7 +301,9 @@
 - **Рекомендация:** Убрать `disabled={counts.voted === 0}`.
 - **Effort:** low
 
-### [50] Room ID не валидируется на сервере
+### ~~[50] Room ID не валидируется на сервере~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `91a0db9`)
+- **Решение:** Added compiled `validRoomID` regexp (`^[a-z0-9-]{1,64}$`) check in HandleWebSocket before WebSocket upgrade. Returns HTTP 400 "invalid room id" on mismatch. 14 unit tests for valid/invalid patterns.
 - **Severity:** MEDIUM
 - **Источники:** бекенд, безопасность, архитектор, адвокат дьявола
 - **Файл:** internal/server/ws.go:27-31
@@ -308,7 +312,9 @@
 - **Рекомендация:** Серверная валидация: regex `^[a-z0-9-]{1,64}$`.
 - **Effort:** low
 
-### [50] Session ID не валидируется на сервере
+### ~~[50] Session ID не валидируется на сервере~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `91a0db9`)
+- **Решение:** Added compiled `validSessionID` regexp (`^[a-f0-9]{32}$`) check in handleJoin. Sends error "invalid sessionId format" on mismatch. 13 unit tests for valid/invalid patterns + integration tests.
 - **Severity:** MEDIUM
 - **Источники:** бекенд, безопасность, архитектор, адвокат дьявола
 - **Файл:** internal/server/ws.go:131-144
@@ -493,7 +499,9 @@
 - **Рекомендация:** Явный сброс `selectedCard.value = ''` в начале connect().
 - **Effort:** low
 
-### [42] HTTP-сервер без ReadHeaderTimeout (slowloris)
+### ~~[42] HTTP-сервер без ReadHeaderTimeout (slowloris)~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `91a0db9`)
+- **Решение:** Added `ReadHeaderTimeout: 5 * time.Second` to http.Server in NewServer. Unit tests verify the timeout is set.
 - **Severity:** MEDIUM
 - **Источники:** бекенд, безопасность
 - **Файл:** internal/server/handler.go:47-51
@@ -620,7 +628,9 @@
 - **Рекомендация:** Маскирование IP в production.
 - **Effort:** low
 
-### [35] HTTP timeout-ы: ReadTimeout и WriteTimeout не установлены
+### ~~[35] HTTP timeout-ы: ReadTimeout и WriteTimeout не установлены~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05, commit: `91a0db9`)
+- **Решение:** ReadHeaderTimeout added (see [42] above). WriteTimeout intentionally not set globally due to WebSocket long-lived connections.
 - **Severity:** LOW
 - **Источники:** бекенд
 - **Файл:** internal/server/handler.go:47-51
@@ -962,13 +972,13 @@
 - **Здоровье:** 3.5/5
 - **Резюме:** Добротный Go-код с хорошим соотношением тест/код (1:1), чистым разделением domain/server. Единственная зависимость — websocket-библиотека. Основные проблемы — в области конкурентности и валидации.
 - **Сильные стороны:** Чистая архитектура domain/server, хорошее покрытие domain-логики, трёхуровневый embedding fallback, минимальные зависимости.
-- **Слабые стороны:** Data race на sessionID и LastActivity, отсутствие валидации roomID/sessionID/userName, нет rate-limit на WS-сообщения, ws.go без тестов.
+- **Слабые стороны:** ~~Data race на sessionID~~ ✅ fixed, data race на LastActivity, ~~отсутствие валидации roomID/sessionID~~ ✅ fixed, отсутствие валидации userName, нет rate-limit на WS-сообщения, ws.go без тестов.
 
 ### Security
 - **Здоровье:** 2.5/5
 - **Резюме:** Базовая защита присутствует (rate-limit на соединения, maxMessageSize, Preact-экранирование), но значимые пробелы в Origin-проверке, input-валидации и resource-limiting. Для internal tool — приемлемо, для public deployment — необходимо доработать.
 - **Сильные стороны:** Минимальный Docker-образ (scratch), нет cookies (снижает CSRF-риск), Preact JSX-экранирование, rate-limit на соединения.
-- **Слабые стороны:** InsecureSkipVerify, нет rate-limit на WS-сообщения, TRUST_PROXY без whitelist, нет валидации roomID/sessionID, нет CSP, нет ReadHeaderTimeout.
+- **Слабые стороны:** ~~InsecureSkipVerify~~ ✅ fixed, нет rate-limit на WS-сообщения, TRUST_PROXY без whitelist, ~~нет валидации roomID/sessionID~~ ✅ fixed, нет CSP, ~~нет ReadHeaderTimeout~~ ✅ fixed.
 
 ### Architecture
 - **Здоровье:** 4/5
@@ -994,45 +1004,48 @@
 
 **Для internal use (за VPN/corporate network):** Готов с минимальными исправлениями.
 
-**Для public deployment:** Не готов. Требуется исправить:
-- Origin-проверку WebSocket
-- Валидацию roomID и sessionID на сервере
-- ReadHeaderTimeout для HTTP
+**Для public deployment:** Почти готов. Исправлено:
+- ~~Origin-проверку WebSocket~~ ✅
+- ~~Валидацию roomID и sessionID на сервере~~ ✅
+- ~~ReadHeaderTimeout для HTTP~~ ✅
+- ~~Data race на client.sessionID~~ ✅
+
+Остаётся:
 - Rate-limit на WS-сообщения
 - TRUST_PROXY whitelist (если используется)
 
 ### Минимальный набор исправлений перед деплоем
 
-1. Добавить `ReadHeaderTimeout` на HTTP-сервер (1 строка)
-2. Валидировать roomID на сервере (regex, 5 строк)
-3. Валидировать sessionID на сервере (regex, 5 строк)
-4. Добавить проверку Origin для WebSocket или `ALLOWED_ORIGINS` env var
-5. Исправить "Click to retry" — либо сделать кликабельным, либо сменить текст
-6. Исправить data race на `client.sessionID` (atomic.Value)
+1. ~~Добавить `ReadHeaderTimeout` на HTTP-сервер (1 строка)~~ ✅ DONE (`91a0db9`)
+2. ~~Валидировать roomID на сервере (regex, 5 строк)~~ ✅ DONE (`91a0db9`)
+3. ~~Валидировать sessionID на сервере (regex, 5 строк)~~ ✅ DONE (`91a0db9`)
+4. ~~Добавить проверку Origin для WebSocket или `ALLOWED_ORIGINS` env var~~ ✅ DONE (ранее, `4eda997`)
+5. ~~Исправить "Click to retry" — либо сделать кликабельным, либо сменить текст~~ ✅ DONE (ранее)
+6. ~~Исправить data race на `client.sessionID` (atomic.Value)~~ ✅ DONE (`93fa153`)
 
 ---
 
 ## 5. Топ-10 приоритетных действий
 
-1. **[55] Добавить проверку Origin для WebSocket** — заменить `InsecureSkipVerify: true` на проверку Origin == Host или `ALLOWED_ORIGINS` env var (effort: low, source: бекенд + безопасность + архитектор)
+1. ~~**[55] Добавить проверку Origin для WebSocket**~~ ✅ DONE (`4eda997`) — заменён `InsecureSkipVerify` на configurable `ALLOWED_ORIGINS` с OriginPatterns
 
-2. **[50] Валидировать roomID на сервере** — regex `^[a-z0-9-]{1,64}$` до WebSocket-апгрейда (effort: low, source: бекенд + безопасность + архитектор)
+2. ~~**[50] Валидировать roomID на сервере**~~ ✅ DONE (`91a0db9`) — добавлен compiled regexp `^[a-z0-9-]{1,64}$` в HandleWebSocket, 14 юнит-тестов
 
-3. **[50] Валидировать sessionID на сервере** — regex `^[a-f0-9]{32}$` в handleJoin (effort: low, source: бекенд + безопасность + архитектор)
+3. ~~**[50] Валидировать sessionID на сервере**~~ ✅ DONE (`91a0db9`) — добавлен compiled regexp `^[a-f0-9]{32}$` в handleJoin, 13 юнит-тестов
 
-4. **[55] Исправить data race на client.sessionID** — заменить на `atomic.Value` или `sync.Mutex` (effort: low, source: бекенд)
+4. ~~**[55] Исправить data race на client.sessionID**~~ ✅ DONE (`93fa153`) — добавлены `sync.Mutex`-protected `SessionID()`/`SetSessionID()` accessors, concurrent test, race detector clean
 
-5. **[42] Добавить ReadHeaderTimeout** — одна строка: `ReadHeaderTimeout: 5 * time.Second` (effort: low, source: бекенд + безопасность)
+5. ~~**[42] Добавить ReadHeaderTimeout**~~ ✅ DONE (`91a0db9`) — `ReadHeaderTimeout: 5 * time.Second` в http.Server
 
-6. **[62] Исправить "Click to retry"** — подключить `retry()` к UI или сменить текст toast-а (effort: low, source: фронтенд)
+6. ~~**[62] Исправить "Click to retry"**~~ ✅ DONE (ранее) — ConnectionBanner с retry кнопкой
 
 7. **[72] Добавить ARIA-атрибуты на карты голосования** — `aria-pressed`, `role="radiogroup"`, `aria-label` на статусы (effort: low, source: фронтенд + продукт)
 
 8. **[50] Добавить rate-limit на WS-сообщения** — per-connection TokenBucket (10-20 msg/sec) в readPump (effort: low, source: бекенд + безопасность + архитектор)
 
-9. **[65] Добавить UI для смены имени** — иконка карандаша в Header + модалка (effort: low, source: продукт)
+9. ~~**[65] Добавить UI для смены имени**~~ ✅ DONE (ранее) — EditNameModal + иконка карандаша в Header
 
-10. **[70] Добавить индикатор состояния соединения** — баннер "Reconnecting..." вместо исчезающего toast-а (effort: medium, source: фронтенд + продукт)
+10. ~~**[70] Добавить индикатор состояния соединения**~~ ✅ DONE (ранее) — ConnectionBanner с reconnect UI
 
 ---
 
