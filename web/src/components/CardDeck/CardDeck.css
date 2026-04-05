@@ -6,6 +6,11 @@
   padding: var(--space-md) 0;
 }
 
+.card-deck--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 @media (max-width: 639px) {
   .card-deck {
     display: grid;

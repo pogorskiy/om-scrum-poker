@@ -1,4 +1,4 @@
-import { selectedCard, isRevealed } from '../../state';
+import { selectedCard, isRevealed, connectionStatus } from '../../state';
 import { send } from '../../ws';
 import { Card } from '../Card/Card';
 import './CardDeck.css';
@@ -8,6 +8,7 @@ const CARD_VALUES = ['?', '0', '0.5', '1', '2', '3', '5', '8', '13', '20', '40',
 export function CardDeck() {
   const current = selectedCard.value;
   const disabled = isRevealed.value;
+  const offline = connectionStatus.value !== 'connected';
 
   function handleClick(value: string) {
     if (disabled) return;
@@ -24,7 +25,7 @@ export function CardDeck() {
   }
 
   return (
-    <div class="card-deck">
+    <div class={`card-deck${offline ? ' card-deck--disabled' : ''}`}>
       {CARD_VALUES.map((v) => (
         <Card
           key={v}

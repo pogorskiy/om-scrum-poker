@@ -5,6 +5,7 @@ import {
   userName,
   selectedCard,
   addToast,
+  reconnectInfo,
   type ClientMessage,
   type ServerMessage,
   type Participant,
@@ -225,27 +226,46 @@ function handleMessage(event: MessageEvent): void {
   }
 }
 
+// Slow polling interval after RECONNECT_TIMEOUT exceeded
+const SLOW_POLL_INTERVAL = 10000;
+
 // Schedule a reconnection attempt
 function scheduleReconnect(): void {
   if (reconnectTimer) return;
 
   const elapsed = Date.now() - reconnectStartTime;
-  if (elapsed > RECONNECT_TIMEOUT) {
-    addToast('Connection lost. Click to retry.', 'error');
-    return;
-  }
+  const maxReached = elapsed > RECONNECT_TIMEOUT;
 
-  const delay = getReconnectDelay();
+  // Use exponential backoff normally, switch to slow polling after timeout
+  const delay = maxReached ? SLOW_POLL_INTERVAL : getReconnectDelay();
   reconnectAttempt++;
+
+  reconnectInfo.value = { attempt: reconnectAttempt, maxReached };
+
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
     connect(currentRoomId);
   }, delay);
 }
 
+// Close socket without resetting reconnect state (used internally)
+function closeSocket(): void {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  if (socket) {
+    socket.onclose = null;
+    socket.onerror = null;
+    socket.onmessage = null;
+    socket.close();
+    socket = null;
+  }
+}
+
 // Connect to a room
 export function connect(roomId: string): void {
-  disconnect();
+  closeSocket();
   currentRoomId = roomId;
   connectionStatus.value = 'connecting';
 
@@ -259,6 +279,7 @@ export function connect(roomId: string): void {
   socket.onopen = () => {
     connectionStatus.value = 'connected';
     reconnectAttempt = 0;
+    reconnectInfo.value = { attempt: 0, maxReached: false };
 
     // Send join message
     send({
@@ -297,6 +318,7 @@ export function disconnect(): void {
   }
   connectionStatus.value = 'disconnected';
   reconnectAttempt = 0;
+  reconnectInfo.value = { attempt: 0, maxReached: false };
   messageQueue.length = 0;
 }
 
@@ -304,5 +326,6 @@ export function disconnect(): void {
 export function retry(): void {
   reconnectAttempt = 0;
   reconnectStartTime = Date.now();
+  reconnectInfo.value = { attempt: 0, maxReached: false };
   connect(currentRoomId);
 }

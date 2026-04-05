@@ -93,9 +93,17 @@ function getOrCreateSessionId(): string {
   return id;
 }
 
+// --- Reconnect info ---
+
+export interface ReconnectInfo {
+  attempt: number;
+  maxReached: boolean;
+}
+
 // --- Signals ---
 
 export const roomState = signal<RoomState | null>(null);
+export const reconnectInfo = signal<ReconnectInfo>({ attempt: 0, maxReached: false });
 export const connectionStatus = signal<'connecting' | 'connected' | 'disconnected'>('disconnected');
 export const userName = signal<string>(safeGet('om-poker-name'));
 export const sessionId = signal<string>(getOrCreateSessionId());

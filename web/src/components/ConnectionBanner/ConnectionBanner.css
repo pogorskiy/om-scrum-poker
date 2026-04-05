@@ -1,0 +1,75 @@
+/* Slide-down animation */
+@keyframes connection-banner-slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Spinner rotation */
+@keyframes connection-banner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.connection-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: connection-banner-slide-down 0.3s ease-out;
+}
+
+/* Reconnecting state: amber/yellow */
+.connection-banner--reconnecting {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* Connection lost state: red */
+.connection-banner--lost {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.connection-banner__text {
+  line-height: 1.4;
+}
+
+/* CSS-only spinner */
+.connection-banner__spinner {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 2px solid #92400e;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: connection-banner-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Retry button */
+.connection-banner__retry {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background-color: #991b1b;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.connection-banner__retry:hover {
+  background-color: #7f1d1d;
+}

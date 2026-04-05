@@ -15,6 +15,7 @@ import { Header } from '../Header/Header';
 import { ParticipantList } from '../ParticipantList/ParticipantList';
 import { CardDeck } from '../CardDeck/CardDeck';
 import { NameEntryModal } from '../NameEntryModal/NameEntryModal';
+import { ConnectionBanner } from '../ConnectionBanner/ConnectionBanner';
 import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
 import './RoomPage.css';
 
@@ -79,6 +80,7 @@ export function RoomPage({ path }: Props) {
   return (
     <div class="room">
       <Header />
+      <ConnectionBanner />
 
       <ParticipantList />
 
