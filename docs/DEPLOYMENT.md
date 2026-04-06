@@ -1,5 +1,150 @@
 # om-scrum-poker — Deployment Guide
 
+## Production Setup (AWS EC2 + GitHub Actions)
+
+The project is deployed on a single EC2 instance. Push to `main` triggers automatic build and deploy via GitHub Actions.
+
+### Architecture
+
+```
+User → HTTPS → Caddy (ports 80/443, auto-SSL) → localhost:8080 → poker container
+```
+
+- **EC2**: t3.micro, Amazon Linux 2023, Elastic IP
+- **Docker**: poker app runs as a container, Caddy runs as a reverse proxy container
+- **GitHub Actions**: builds Docker image, pushes to GHCR, deploys to EC2 via SSH
+- **GHCR** (GitHub Container Registry): stores Docker images
+- **Caddy**: reverse proxy, automatic Let's Encrypt HTTPS certificates
+
+### How deploy works
+
+1. Developer pushes to `main`
+2. GitHub Actions (`.github/workflows/deploy.yml`) triggers:
+   - Builds Docker image using multi-stage Dockerfile
+   - Pushes image to `ghcr.io/<repo>:latest`
+   - SSHes into EC2, pulls new image, restarts `poker` container
+3. Caddy proxies traffic to the new container — no restart needed
+
+Deploy takes ~35 seconds.
+
+### GitHub Secrets (Settings → Secrets → Actions)
+
+| Secret | Description |
+|--------|-------------|
+| `EC2_HOST` | Elastic IP of the EC2 instance |
+| `EC2_SSH_KEY` | Private SSH key (`poker-key`) for ec2-user |
+| `ALLOWED_ORIGINS` | Allowed WebSocket origins (the domain with https://) |
+
+`GITHUB_TOKEN` is built-in and provides access to GHCR.
+
+### EC2 instance setup
+
+Instance was created with AWS CLI:
+
+```bash
+# Security group with ports 22, 80, 443
+aws ec2 create-security-group --group-name poker-sg --description "Scrum Poker"
+aws ec2 authorize-security-group-ingress --group-name poker-sg --protocol tcp --port 22 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-name poker-sg --protocol tcp --port 80 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-name poker-sg --protocol tcp --port 443 --cidr 0.0.0.0/0
+
+# SSH key pair
+aws ec2 create-key-pair --key-name poker-key --query 'KeyMaterial' --output text > ~/.ssh/poker-key.pem
+chmod 400 ~/.ssh/poker-key.pem
+
+# Launch instance (Amazon Linux 2023, t3.micro)
+aws ec2 run-instances \
+  --image-id <ami-id> \
+  --instance-type t3.micro \
+  --key-name poker-key \
+  --security-group-ids <sg-id> \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=poker}]'
+
+# Elastic IP
+aws ec2 allocate-address
+aws ec2 associate-address --instance-id <id> --allocation-id <eipalloc-id>
+```
+
+Docker installed on the instance:
+
+```bash
+ssh -i ~/.ssh/poker-key.pem ec2-user@<ELASTIC_IP>
+sudo yum install -y docker
+sudo systemctl enable --now docker
+sudo usermod -aG docker ec2-user
+```
+
+### Caddy (HTTPS reverse proxy)
+
+Caddy runs as a Docker container with `--network host`. Configuration:
+
+```
+# ~/Caddyfile on EC2
+your-domain.com {
+    reverse_proxy localhost:8080
+}
+```
+
+Started with:
+
+```bash
+docker run -d --name caddy --restart unless-stopped \
+  --network host \
+  -v /home/ec2-user/Caddyfile:/etc/caddy/Caddyfile \
+  -v caddy_data:/data \
+  -v caddy_config:/config \
+  caddy:2-alpine
+```
+
+Caddy automatically obtains and renews Let's Encrypt certificates. No manual SSL setup needed.
+
+### DNS
+
+A-record pointing the domain to the Elastic IP. Managed in Route 53 (separate AWS account).
+
+### Containers on EC2
+
+| Container | Image | Ports | Purpose |
+|-----------|-------|-------|---------|
+| `poker` | `ghcr.io/<repo>:latest` | `127.0.0.1:8080→8080` | Application |
+| `caddy` | `caddy:2-alpine` | `80, 443` (host network) | HTTPS reverse proxy |
+
+Both have `--restart unless-stopped`.
+
+### Manual operations
+
+```bash
+# SSH into server
+ssh -i ~/.ssh/poker-key.pem ec2-user@<ELASTIC_IP>
+
+# View running containers
+docker ps
+
+# View app logs
+docker logs poker
+docker logs caddy
+
+# Manual redeploy
+docker pull ghcr.io/<repo>:latest
+docker stop poker && docker rm poker
+docker run -d --name poker --restart unless-stopped \
+  -p 127.0.0.1:8080:8080 \
+  -e ALLOWED_ORIGINS='https://your-domain.com' \
+  ghcr.io/<repo>:latest
+
+# Restart Caddy (e.g. after editing Caddyfile)
+docker restart caddy
+```
+
+### Cost
+
+- EC2 t3.micro: free tier eligible (750 hrs/month for 12 months), then ~$8/month
+- Elastic IP: free while associated with a running instance
+- GitHub Actions: free for public repositories
+- GHCR: free for public repositories
+
+---
+
 ## Prerequisites
 
 | Tool | Version | Check |
