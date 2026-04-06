@@ -57,8 +57,8 @@ Endpoint: `GET /ws/{roomId}`
 
 All messages use envelope format: `{ "type": "<event>", "payload": { ... } }`.
 
-Key events (client -> server): `join`, `vote`, `reveal`, `reset`, `name_updated`, `presence`.
-Key events (server -> client): `room_state`, `participant_joined`, `participant_left`, `vote_cast`, `vote_retracted`, `votes_revealed`, `votes_reset`, `name_updated`, `error`.
+Key events (client -> server): `join`, `vote`, `reveal`, `new_round`, `clear_room`, `update_name`, `presence`, `update_role`, `leave`, `timer_set_duration`, `timer_start`, `timer_reset`.
+Key events (server -> client): `room_state`, `participant_joined`, `participant_left`, `vote_cast`, `vote_retracted`, `votes_revealed`, `round_reset`, `room_cleared`, `presence_changed`, `name_updated`, `role_updated`, `timer_updated`, `error`.
 
 Full protocol spec: [docs/planning/04-architecture.md](docs/planning/04-architecture.md) Section 4.
 
