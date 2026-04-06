@@ -244,5 +244,8 @@ func (rm *RoomManager) BuildRoomState(room *domain.Room) RoomStatePayload {
 		state.Result = domain.CalculateResult(room.Participants)
 	}
 
+	snapshot := room.TimerInfo()
+	state.Timer = buildTimerPayload(snapshot)
+
 	return state
 }

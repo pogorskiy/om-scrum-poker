@@ -45,12 +45,13 @@ type ParticipantInfo struct {
 }
 
 type RoomStatePayload struct {
-	RoomID       string                `json:"roomId"`
-	RoomName     string                `json:"roomName"`
-	CreatedBy    string                `json:"createdBy"`
-	Phase        domain.Phase          `json:"phase"`
-	Participants []ParticipantInfo     `json:"participants"`
-	Result       *domain.RoundResult   `json:"result"`
+	RoomID       string              `json:"roomId"`
+	RoomName     string              `json:"roomName"`
+	CreatedBy    string              `json:"createdBy"`
+	Phase        domain.Phase        `json:"phase"`
+	Participants []ParticipantInfo   `json:"participants"`
+	Result       *domain.RoundResult `json:"result"`
+	Timer        TimerStatePayload   `json:"timer"`
 }
 
 type ParticipantJoinedPayload struct {
@@ -89,6 +90,17 @@ type UpdateRolePayload struct {
 type RoleUpdatedPayload struct {
 	SessionID string `json:"sessionId"`
 	Role      string `json:"role"`
+}
+
+type TimerSetDurationPayload struct {
+	Duration int `json:"duration"`
+}
+
+type TimerStatePayload struct {
+	Duration  int    `json:"duration"`
+	State     string `json:"state"`
+	StartedAt *int64 `json:"startedAt"` // unix ms, null when idle
+	Remaining int    `json:"remaining"` // seconds
 }
 
 type ErrorPayload struct {

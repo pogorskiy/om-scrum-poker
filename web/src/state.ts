@@ -21,6 +21,13 @@ export interface VoteResult {
   spread: [number, number] | null;
 }
 
+export interface TimerState {
+  duration: number;      // seconds
+  state: 'idle' | 'running' | 'expired';
+  startedAt: number | null;  // unix ms
+  remaining: number;     // seconds
+}
+
 export interface RoomState {
   roomId: string;
   roomName: string;
@@ -28,6 +35,7 @@ export interface RoomState {
   phase: 'voting' | 'reveal';
   participants: Participant[];
   result: VoteResult | null;
+  timer: TimerState;
 }
 
 export interface Toast {
@@ -49,6 +57,7 @@ export type ServerMessage =
   | { type: 'presence_changed'; payload: { sessionId: string; status: string } }
   | { type: 'name_updated'; payload: { sessionId: string; userName: string } }
   | { type: 'role_updated'; payload: { sessionId: string; role: string } }
+  | { type: 'timer_updated'; payload: TimerState }
   | { type: 'error'; payload: { code: string; message: string } };
 
 // Client message types
@@ -61,6 +70,9 @@ export type ClientMessage =
   | { type: 'update_name'; payload: { userName: string } }
   | { type: 'presence'; payload: { status: string } }
   | { type: 'update_role'; payload: { role: string } }
+  | { type: 'timer_set_duration'; payload: { duration: number } }
+  | { type: 'timer_start'; payload: Record<string, never> }
+  | { type: 'timer_reset'; payload: Record<string, never> }
   | { type: 'leave'; payload: Record<string, never> };
 
 // --- localStorage helpers ---
@@ -114,6 +126,7 @@ export const sessionId = signal<string>(getOrCreateSessionId());
 export const selectedCard = signal<string>('');
 export const userRole = signal<'voter' | 'observer'>('voter');
 export const toasts = signal<Toast[]>([]);
+export const timerState = signal<TimerState>({ duration: 30, state: 'idle', startedAt: null, remaining: 30 });
 export const currentPath = signal<string>(window.location.pathname);
 
 // --- Computed ---

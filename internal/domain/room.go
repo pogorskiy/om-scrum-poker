@@ -7,6 +7,36 @@ import (
 	"time"
 )
 
+// TimerState represents the current state of the room timer.
+type TimerState string
+
+const (
+	TimerIdle    TimerState = "idle"
+	TimerRunning TimerState = "running"
+	TimerExpired TimerState = "expired"
+)
+
+const (
+	MinTimerDuration     = 30
+	MaxTimerDuration     = 600
+	DefaultTimerDuration = 30
+)
+
+// Timer holds the countdown timer state for a room.
+type Timer struct {
+	Duration  int        // seconds, 30-600
+	State     TimerState
+	StartedAt time.Time // zero when idle/expired
+}
+
+// TimerSnapshot is a point-in-time view of the timer state.
+type TimerSnapshot struct {
+	Duration  int
+	State     TimerState
+	StartedAt time.Time
+	Remaining int // seconds
+}
+
 // Phase represents the current state of a poker room.
 type Phase string
 
@@ -58,6 +88,7 @@ type Room struct {
 	CreatedBy    string // display name of the room creator
 	Phase        Phase
 	Participants map[string]*Participant // keyed by SessionID
+	Timer        Timer
 	CreatedAt    time.Time
 	lastActivity atomic.Int64
 	mu           sync.Mutex
@@ -97,6 +128,7 @@ func NewRoom(id, name, createdBy string) (*Room, error) {
 		CreatedBy:    createdBy,
 		Phase:        PhaseVoting,
 		Participants: make(map[string]*Participant),
+		Timer:        Timer{Duration: DefaultTimerDuration, State: TimerIdle},
 		CreatedAt:    time.Now(),
 	}
 	r.TouchActivity()
@@ -226,6 +258,7 @@ func (r *Room) NewRound() {
 		p.Vote = ""
 	}
 	r.Phase = PhaseVoting
+	r.ResetTimer()
 	r.TouchActivity()
 }
 
@@ -235,6 +268,7 @@ func (r *Room) NewRound() {
 func (r *Room) ClearRoom() {
 	r.Participants = make(map[string]*Participant)
 	r.Phase = PhaseVoting
+	r.Timer = Timer{Duration: DefaultTimerDuration, State: TimerIdle}
 	r.TouchActivity()
 }
 
@@ -279,6 +313,78 @@ func (r *Room) HasVoted(sessionID string) bool {
 		return false
 	}
 	return p.Vote != ""
+}
+
+// SetTimerDuration sets the timer duration in seconds. Only allowed when timer is idle.
+// Duration must be in range [MinTimerDuration, MaxTimerDuration].
+// Must be called with lock held.
+func (r *Room) SetTimerDuration(d int) error {
+	if r.Timer.State != TimerIdle {
+		return fmt.Errorf("timer must be idle to change duration")
+	}
+	if d < MinTimerDuration || d > MaxTimerDuration {
+		return fmt.Errorf("duration must be between %d and %d seconds", MinTimerDuration, MaxTimerDuration)
+	}
+	r.Timer.Duration = d
+	r.TouchActivity()
+	return nil
+}
+
+// StartTimer begins the countdown. Only allowed in idle state.
+// Idempotent: no-op if already running. Returns true if state changed.
+// Must be called with lock held.
+func (r *Room) StartTimer() bool {
+	if r.Timer.State != TimerIdle {
+		return false
+	}
+	r.Timer.State = TimerRunning
+	r.Timer.StartedAt = time.Now()
+	r.TouchActivity()
+	return true
+}
+
+// ResetTimer returns the timer to idle with the current duration.
+// Idempotent: no-op if already idle. Returns true if state changed.
+// Must be called with lock held.
+func (r *Room) ResetTimer() bool {
+	if r.Timer.State == TimerIdle {
+		return false
+	}
+	r.Timer.State = TimerIdle
+	r.Timer.StartedAt = time.Time{}
+	r.TouchActivity()
+	return true
+}
+
+// TimerInfo returns a snapshot of the timer state.
+// Auto-transitions running -> expired if remaining time <= 0.
+// Must be called with lock held.
+func (r *Room) TimerInfo() TimerSnapshot {
+	snap := TimerSnapshot{
+		Duration:  r.Timer.Duration,
+		State:     r.Timer.State,
+		StartedAt: r.Timer.StartedAt,
+	}
+
+	switch r.Timer.State {
+	case TimerIdle:
+		snap.Remaining = r.Timer.Duration
+	case TimerRunning:
+		elapsed := int(time.Since(r.Timer.StartedAt).Seconds())
+		remaining := r.Timer.Duration - elapsed
+		if remaining <= 0 {
+			// Auto-transition to expired.
+			r.Timer.State = TimerExpired
+			snap.State = TimerExpired
+			snap.Remaining = 0
+		} else {
+			snap.Remaining = remaining
+		}
+	case TimerExpired:
+		snap.Remaining = 0
+	}
+
+	return snap
 }
 
 // ActiveConnections returns the number of non-disconnected participants.

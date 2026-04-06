@@ -150,6 +150,12 @@ func dispatch(ctx context.Context, client *Client, manager *RoomManager, limiter
 		handlePresence(client, manager, env.Payload)
 	case "update_role":
 		handleUpdateRole(client, manager, env.Payload)
+	case "timer_set_duration":
+		handleTimerSetDuration(client, manager, env.Payload)
+	case "timer_start":
+		handleTimerStart(client, manager)
+	case "timer_reset":
+		handleTimerReset(client, manager)
 	case "leave":
 		handleLeave(client, manager)
 	default:
@@ -323,11 +329,17 @@ func handleNewRound(client *Client, manager *RoomManager) {
 
 	room.Lock()
 	room.NewRound()
+	timerSnapshot := room.TimerInfo()
 	room.Unlock()
 
 	msg, _ := MakeEnvelope("round_reset", struct{}{})
 	if msg != nil {
 		manager.Broadcast(client.roomID, msg)
+	}
+
+	timerMsg, _ := MakeEnvelope("timer_updated", buildTimerPayload(timerSnapshot))
+	if timerMsg != nil {
+		manager.Broadcast(client.roomID, timerMsg)
 	}
 }
 
@@ -457,6 +469,105 @@ func handleUpdateRole(client *Client, manager *RoomManager, payload json.RawMess
 		SessionID: client.SessionID(),
 		Role:      p.Role,
 	})
+	if msg != nil {
+		manager.Broadcast(client.roomID, msg)
+	}
+}
+
+// buildTimerPayload converts a domain.TimerSnapshot to a TimerStatePayload.
+func buildTimerPayload(s domain.TimerSnapshot) TimerStatePayload {
+	p := TimerStatePayload{
+		Duration:  s.Duration,
+		State:     string(s.State),
+		Remaining: s.Remaining,
+	}
+	if !s.StartedAt.IsZero() {
+		ms := s.StartedAt.UnixMilli()
+		p.StartedAt = &ms
+	}
+	return p
+}
+
+func handleTimerSetDuration(client *Client, manager *RoomManager, payload json.RawMessage) {
+	if client.SessionID() == "" {
+		client.SendError("invalid_message", "must join first")
+		return
+	}
+
+	var p TimerSetDurationPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		client.SendError("invalid_message", "invalid payload")
+		return
+	}
+
+	room := manager.GetRoom(client.roomID)
+	if room == nil {
+		client.SendError("room_not_found", "room does not exist")
+		return
+	}
+
+	room.Lock()
+	if err := room.SetTimerDuration(p.Duration); err != nil {
+		room.Unlock()
+		client.SendError("invalid_message", err.Error())
+		return
+	}
+	snapshot := room.TimerInfo()
+	room.Unlock()
+
+	msg, _ := MakeEnvelope("timer_updated", buildTimerPayload(snapshot))
+	if msg != nil {
+		manager.Broadcast(client.roomID, msg)
+	}
+}
+
+func handleTimerStart(client *Client, manager *RoomManager) {
+	if client.SessionID() == "" {
+		client.SendError("invalid_message", "must join first")
+		return
+	}
+
+	room := manager.GetRoom(client.roomID)
+	if room == nil {
+		client.SendError("room_not_found", "room does not exist")
+		return
+	}
+
+	room.Lock()
+	if !room.StartTimer() {
+		room.Unlock()
+		return
+	}
+	snapshot := room.TimerInfo()
+	room.Unlock()
+
+	msg, _ := MakeEnvelope("timer_updated", buildTimerPayload(snapshot))
+	if msg != nil {
+		manager.Broadcast(client.roomID, msg)
+	}
+}
+
+func handleTimerReset(client *Client, manager *RoomManager) {
+	if client.SessionID() == "" {
+		client.SendError("invalid_message", "must join first")
+		return
+	}
+
+	room := manager.GetRoom(client.roomID)
+	if room == nil {
+		client.SendError("room_not_found", "room does not exist")
+		return
+	}
+
+	room.Lock()
+	if !room.ResetTimer() {
+		room.Unlock()
+		return
+	}
+	snapshot := room.TimerInfo()
+	room.Unlock()
+
+	msg, _ := MakeEnvelope("timer_updated", buildTimerPayload(snapshot))
 	if msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}

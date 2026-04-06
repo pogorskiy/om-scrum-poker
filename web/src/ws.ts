@@ -7,6 +7,7 @@ import {
   userRole,
   addToast,
   reconnectInfo,
+  timerState,
   type ClientMessage,
   type ServerMessage,
   type Participant,
@@ -85,6 +86,9 @@ function handleMessage(event: MessageEvent): void {
         }));
       }
       roomState.value = msg.payload;
+      if (msg.payload.timer) {
+        timerState.value = msg.payload.timer;
+      }
       // Show a hint when joining an empty room via shared link
       if (isFirstRoomState && msg.payload.participants.length <= 1) {
         addToast('You started a new room. Share the link to invite others.');
@@ -248,6 +252,11 @@ function handleMessage(event: MessageEvent): void {
             : p
         ),
       };
+      break;
+    }
+
+    case 'timer_updated': {
+      timerState.value = msg.payload;
       break;
     }
 

@@ -552,3 +552,189 @@ func TestRejoinUpdatesRole(t *testing.T) {
 		t.Error("expected vote to be cleared on rejoin as observer")
 	}
 }
+
+func TestTimer_SetDuration_Valid(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+
+	for _, d := range []int{30, 60, 300, 600} {
+		// Reset to idle first if needed.
+		r.Timer.State = TimerIdle
+		if err := r.SetTimerDuration(d); err != nil {
+			t.Errorf("SetTimerDuration(%d) unexpected error: %v", d, err)
+		}
+		if r.Timer.Duration != d {
+			t.Errorf("expected duration %d, got %d", d, r.Timer.Duration)
+		}
+	}
+}
+
+func TestTimer_SetDuration_OutOfRange(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+
+	for _, d := range []int{0, 29, 601} {
+		if err := r.SetTimerDuration(d); err == nil {
+			t.Errorf("SetTimerDuration(%d) expected error, got nil", d)
+		}
+	}
+}
+
+func TestTimer_SetDuration_NotIdle(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.StartTimer()
+
+	if err := r.SetTimerDuration(60); err == nil {
+		t.Error("expected error when setting duration while running")
+	}
+}
+
+func TestTimer_Start_FromIdle(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+
+	changed := r.StartTimer()
+	if !changed {
+		t.Error("expected StartTimer to return true")
+	}
+	if r.Timer.State != TimerRunning {
+		t.Errorf("expected state %q, got %q", TimerRunning, r.Timer.State)
+	}
+	if r.Timer.StartedAt.IsZero() {
+		t.Error("expected StartedAt to be set")
+	}
+}
+
+func TestTimer_Start_AlreadyRunning(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.StartTimer()
+
+	changed := r.StartTimer()
+	if changed {
+		t.Error("expected StartTimer to return false when already running")
+	}
+}
+
+func TestTimer_Start_FromExpired(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Timer.State = TimerExpired
+
+	changed := r.StartTimer()
+	if changed {
+		t.Error("expected StartTimer to return false from expired state")
+	}
+	if r.Timer.State != TimerExpired {
+		t.Errorf("expected state to remain %q, got %q", TimerExpired, r.Timer.State)
+	}
+}
+
+func TestTimer_Reset_FromRunning(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.StartTimer()
+
+	changed := r.ResetTimer()
+	if !changed {
+		t.Error("expected ResetTimer to return true")
+	}
+	if r.Timer.State != TimerIdle {
+		t.Errorf("expected state %q, got %q", TimerIdle, r.Timer.State)
+	}
+	if !r.Timer.StartedAt.IsZero() {
+		t.Error("expected StartedAt to be zero after reset")
+	}
+}
+
+func TestTimer_Reset_AlreadyIdle(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+
+	changed := r.ResetTimer()
+	if changed {
+		t.Error("expected ResetTimer to return false when already idle")
+	}
+}
+
+func TestTimer_Info_Idle(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.SetTimerDuration(60)
+
+	snap := r.TimerInfo()
+	if snap.State != TimerIdle {
+		t.Errorf("expected state %q, got %q", TimerIdle, snap.State)
+	}
+	if snap.Remaining != 60 {
+		t.Errorf("expected remaining 60, got %d", snap.Remaining)
+	}
+}
+
+func TestTimer_Info_Running(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.SetTimerDuration(60)
+	r.StartTimer()
+
+	// Immediately after start, remaining should be close to duration.
+	snap := r.TimerInfo()
+	if snap.State != TimerRunning {
+		t.Errorf("expected state %q, got %q", TimerRunning, snap.State)
+	}
+	if snap.Remaining < 59 || snap.Remaining > 60 {
+		t.Errorf("expected remaining ~60, got %d", snap.Remaining)
+	}
+}
+
+func TestTimer_Info_AutoExpire(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Timer.State = TimerRunning
+	r.Timer.StartedAt = time.Now().Add(-time.Duration(r.Timer.Duration+1) * time.Second)
+
+	snap := r.TimerInfo()
+	if snap.State != TimerExpired {
+		t.Errorf("expected state %q, got %q", TimerExpired, snap.State)
+	}
+	if snap.Remaining != 0 {
+		t.Errorf("expected remaining 0, got %d", snap.Remaining)
+	}
+	// Verify the room's timer state was also updated.
+	if r.Timer.State != TimerExpired {
+		t.Errorf("expected room timer state %q, got %q", TimerExpired, r.Timer.State)
+	}
+}
+
+func TestNewRound_ResetsTimer(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Join("s1", "Alice", "")
+	r.CastVote("s1", "5")
+	r.Reveal()
+
+	// Start timer and set a non-default duration.
+	r.SetTimerDuration(120)
+	r.StartTimer()
+
+	r.NewRound()
+
+	if r.Timer.State != TimerIdle {
+		t.Errorf("expected timer state %q after NewRound, got %q", TimerIdle, r.Timer.State)
+	}
+	if !r.Timer.StartedAt.IsZero() {
+		t.Error("expected StartedAt to be zero after NewRound")
+	}
+	// Duration should be preserved.
+	if r.Timer.Duration != 120 {
+		t.Errorf("expected timer duration 120 after NewRound, got %d", r.Timer.Duration)
+	}
+}
+
+func TestClearRoom_ResetsTimerToDefaults(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Join("s1", "Alice", "")
+	r.SetTimerDuration(120)
+	r.StartTimer()
+
+	r.ClearRoom()
+
+	if r.Timer.State != TimerIdle {
+		t.Errorf("expected timer state %q after ClearRoom, got %q", TimerIdle, r.Timer.State)
+	}
+	if r.Timer.Duration != DefaultTimerDuration {
+		t.Errorf("expected timer duration %d after ClearRoom, got %d", DefaultTimerDuration, r.Timer.Duration)
+	}
+	if !r.Timer.StartedAt.IsZero() {
+		t.Error("expected StartedAt to be zero after ClearRoom")
+	}
+}
