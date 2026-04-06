@@ -111,19 +111,23 @@
 - **Рекомендация:** Привести все три источника в соответствие.
 - **Effort:** low
 
-### [62] "Connection lost. Click to retry." — но нет обработчика клика
+### ~~[62] "Connection lost. Click to retry." — но нет обработчика клика~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-05)
+- **Решение:** ConnectionBanner компонент с кнопкой Retry, вызывающей `retry()` из ws.ts. Покрыто тестами.
 - **Severity:** MEDIUM
 - **Источники:** фронтенд
-- **Файл:** web/src/ws.ts:233
+- **Файл:** web/src/components/ConnectionBanner/ConnectionBanner.tsx
 - **Проблема:** Toast "Connection lost. Click to retry." не имеет обработчика клика. Функция `retry()` экспортирована, но не используется.
 - **Влияние:** Пользователь видит инструкцию "Click to retry", но клик ничего не делает.
 - **Рекомендация:** Добавить кликабельный retry или изменить текст на "Please reload the page."
 - **Effort:** low
 
-### [62] Игнорирование ошибок MakeEnvelope
+### ~~[62] Игнорирование ошибок MakeEnvelope~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-06)
+- **Решение:** Введена функция `makeEnvelopeOrLog()` — обёртка над `MakeEnvelope`, которая логирует ошибку с указанием event type. Все 15 мест в ws.go заменены. 4 unit-теста (success, all event types, error logging, nil payload).
 - **Severity:** MEDIUM
 - **Источники:** бекенд
-- **Файл:** internal/server/ws.go (10+ мест)
+- **Файл:** internal/server/ws.go (15 мест)
 - **Проблема:** Во всех хэндлерах ошибка `MakeEnvelope` присваивается в `_`. Молчаливое проглатывание ошибок.
 - **Влияние:** При изменении payload-структур ошибка будет потеряна, broadcast молча не произойдёт.
 - **Рекомендация:** Логировать ошибку при `err != nil`.
@@ -140,10 +144,12 @@
 - **Рекомендация:** Показать toast при входе в пустую комнату по ссылке.
 - **Effort:** low
 
-### [60] Нет защиты от множественного вызова reveal/new_round
+### ~~[60] Нет защиты от множественного вызова reveal/new_round~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-06)
+- **Решение:** Двухуровневая защита: (1) Backend — `Reveal()` возвращает ошибку "already in reveal phase", `NewRound()` теперь возвращает ошибку "already in voting phase" (добавлен idempotency guard). (2) Frontend — signal `actionPending` блокирует кнопки между кликом и получением ответа сервера (`votes_revealed`/`round_reset`/`error`). Сбрасывается при disconnect. 9 frontend unit-тестов, 2 backend unit-теста.
 - **Severity:** MEDIUM
-- **Источники:** фронтенд
-- **Файл:** web/src/components/RoomPage/RoomPage.tsx:62-68
+- **Источники:** фронтенд + бекенд
+- **Файл:** web/src/components/RoomPage/RoomPage.tsx, internal/domain/room.go, internal/server/ws.go
 - **Проблема:** Кнопки "Show Votes" и "New Round" не дизейблятся после клика. Быстрый двойной клик отправит дублирующие команды.
 - **Влияние:** Лишний трафик и потенциально непредсказуемое поведение.
 - **Рекомендация:** Добавить debounce или блокировку кнопки до ответа сервера.
@@ -1063,9 +1069,13 @@
 
 6. ~~**[62] Исправить "Click to retry"**~~ ✅ DONE (ранее) — ConnectionBanner с retry кнопкой
 
-7. **[72] Добавить ARIA-атрибуты на карты голосования** — `aria-pressed`, `role="radiogroup"`, `aria-label` на статусы (effort: low, source: фронтенд + продукт)
+7. ~~**[62] Логировать ошибки MakeEnvelope**~~ ✅ DONE (2026-04-06) — `makeEnvelopeOrLog()` wrapper, 15 call sites replaced, 4 unit tests
 
-8. **[50] Добавить rate-limit на WS-сообщения** — per-connection TokenBucket (10-20 msg/sec) в readPump (effort: low, source: бекенд + безопасность + архитектор)
+8. ~~**[60] Защита от двойного reveal/new_round**~~ ✅ DONE (2026-04-06) — Backend idempotency guard on `NewRound()`, frontend `actionPending` signal, 9+2 unit tests
+
+9. **[72] Добавить ARIA-атрибуты на карты голосования** — `aria-pressed`, `role="radiogroup"`, `aria-label` на статусы (effort: low, source: фронтенд + продукт)
+
+10. **[50] Добавить rate-limit на WS-сообщения** — per-connection TokenBucket (10-20 msg/sec) в readPump (effort: low, source: бекенд + безопасность + архитектор)
 
 9. ~~**[65] Добавить UI для смены имени**~~ ✅ DONE (ранее) — EditNameModal + иконка карандаша в Header
 
