@@ -130,6 +130,7 @@ docker stop poker && docker rm poker
 docker run -d --name poker --restart unless-stopped \
   -p 127.0.0.1:8080:8080 \
   -e ALLOWED_ORIGINS='https://your-domain.com' \
+  -e TRUST_PROXY=true \
   ghcr.io/<repo>:latest
 
 # Restart Caddy (e.g. after editing Caddyfile)

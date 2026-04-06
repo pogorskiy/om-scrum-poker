@@ -34,4 +34,5 @@ jobs:
             docker run -d --name poker --restart unless-stopped \
               -p 127.0.0.1:8080:8080 \
               -e ALLOWED_ORIGINS='${{ secrets.ALLOWED_ORIGINS }}' \
+              -e TRUST_PROXY=true \
               ghcr.io/${{ github.repository }}:latest
