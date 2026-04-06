@@ -128,6 +128,7 @@ export const userRole = signal<'voter' | 'observer'>('voter');
 export const toasts = signal<Toast[]>([]);
 export const timerState = signal<TimerState>({ duration: 30, state: 'idle', startedAt: null, remaining: 30 });
 export const currentPath = signal<string>(window.location.pathname);
+export const actionPending = signal<boolean>(false);
 
 // --- Computed ---
 

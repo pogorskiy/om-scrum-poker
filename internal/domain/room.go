@@ -252,14 +252,19 @@ func (r *Room) Reveal() (*RoundResult, error) {
 }
 
 // NewRound clears all votes and returns to voting phase.
+// Returns error if already in voting phase (idempotency guard).
 // Must be called with lock held.
-func (r *Room) NewRound() {
+func (r *Room) NewRound() error {
+	if r.Phase == PhaseVoting {
+		return fmt.Errorf("already in voting phase")
+	}
 	for _, p := range r.Participants {
 		p.Vote = ""
 	}
 	r.Phase = PhaseVoting
 	r.ResetTimer()
 	r.TouchActivity()
+	return nil
 }
 
 // ClearRoom removes all participants and resets the phase.

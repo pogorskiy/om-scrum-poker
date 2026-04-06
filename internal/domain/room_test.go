@@ -201,7 +201,9 @@ func TestNewRound(t *testing.T) {
 	r.CastVote("s2", "8")
 	r.Reveal()
 
-	r.NewRound()
+	if err := r.NewRound(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if r.Phase != PhaseVoting {
 		t.Errorf("expected phase %q, got %q", PhaseVoting, r.Phase)
@@ -210,6 +212,35 @@ func TestNewRound(t *testing.T) {
 		if p.Vote != "" {
 			t.Errorf("expected empty vote after new round, got %q for %s", p.Vote, p.Name)
 		}
+	}
+}
+
+func TestNewRound_AlreadyVoting(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Join("s1", "Alice", "")
+	// Phase is already voting — NewRound should return error.
+	err := r.NewRound()
+	if err == nil {
+		t.Fatal("expected error when calling NewRound in voting phase")
+	}
+	if err.Error() != "already in voting phase" {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestReveal_AlreadyRevealed(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Join("s1", "Alice", "")
+	r.CastVote("s1", "5")
+	r.Reveal()
+
+	// Second reveal should fail.
+	_, err := r.Reveal()
+	if err == nil {
+		t.Fatal("expected error when calling Reveal in reveal phase")
+	}
+	if err.Error() != "already in reveal phase" {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 
@@ -417,7 +448,7 @@ func TestAllOperationsUpdateLastActivity(t *testing.T) {
 		{"Leave", func() { r.Leave("s2") }},
 		{"CastVote", func() { r.CastVote("s1", "5") }},
 		{"Reveal", func() { r.Reveal() }},
-		{"NewRound", func() { r.NewRound() }},
+		{"NewRound", func() { r.NewRound() }}, //nolint: errcheck — activity test
 		{"ClearRoom", func() {
 			r.ClearRoom()
 			r.Join("s1", "Alice", "") // re-join for subsequent ops
@@ -706,7 +737,9 @@ func TestNewRound_ResetsTimer(t *testing.T) {
 	r.SetTimerDuration(120)
 	r.StartTimer()
 
-	r.NewRound()
+	if err := r.NewRound(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if r.Timer.State != TimerIdle {
 		t.Errorf("expected timer state %q after NewRound, got %q", TimerIdle, r.Timer.State)

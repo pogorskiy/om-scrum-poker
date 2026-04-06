@@ -7,6 +7,7 @@ import {
   voteCount,
   selectedCard,
   myParticipant,
+  actionPending,
 } from '../../state';
 import { connect, disconnect, send } from '../../ws';
 import { parseRoomId } from '../../utils/room-url';
@@ -62,11 +63,17 @@ export function RoomPage({ path }: Props) {
     return <div class="room__connecting">Connecting...</div>;
   }
 
+  const pending = actionPending.value;
+
   function handleReveal() {
+    if (pending) return;
+    actionPending.value = true;
     send({ type: 'reveal', payload: {} });
   }
 
   function handleNewRound() {
+    if (pending) return;
+    actionPending.value = true;
     send({ type: 'new_round', payload: {} });
   }
 
@@ -118,7 +125,7 @@ export function RoomPage({ path }: Props) {
           <button
             class="room__action-btn room__action-btn--primary"
             onClick={handleReveal}
-            disabled={counts.voted === 0}
+            disabled={counts.voted === 0 || pending}
           >
             Show Votes ({counts.voted} of {counts.total} voted{observerCount > 0 ? `, ${observerCount} observing` : ''})
           </button>
@@ -127,6 +134,7 @@ export function RoomPage({ path }: Props) {
           <button
             class="room__action-btn room__action-btn--secondary"
             onClick={handleNewRound}
+            disabled={pending}
           >
             New Round
           </button>

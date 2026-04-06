@@ -8,6 +8,7 @@ import {
   addToast,
   reconnectInfo,
   timerState,
+  actionPending,
   type ClientMessage,
   type ServerMessage,
   type Participant,
@@ -169,6 +170,7 @@ function handleMessage(event: MessageEvent): void {
 
     case 'votes_revealed': {
       if (!roomState.value) break;
+      actionPending.value = false;
       // Update participants with their votes
       const votesMap = new Map(
         msg.payload.votes.map((v) => [v.sessionId, v.value])
@@ -187,6 +189,7 @@ function handleMessage(event: MessageEvent): void {
 
     case 'round_reset': {
       if (!roomState.value) break;
+      actionPending.value = false;
       selectedCard.value = '';
       roomState.value = {
         ...roomState.value,
@@ -261,6 +264,7 @@ function handleMessage(event: MessageEvent): void {
     }
 
     case 'error':
+      actionPending.value = false;
       addToast(msg.payload.message, 'error');
       break;
   }
@@ -363,6 +367,7 @@ export function disconnect(): void {
     socket = null;
   }
   connectionStatus.value = 'disconnected';
+  actionPending.value = false;
   reconnectAttempt = 0;
   reconnectInfo.value = { attempt: 0, maxReached: false };
   messageQueue.length = 0;
