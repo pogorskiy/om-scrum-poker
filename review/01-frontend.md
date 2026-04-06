@@ -17,6 +17,7 @@
 - **Рекомендация:** Добавить focus trap (можно на `<dialog>` элементе или вручную), `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, обработку Escape, блокировку scroll на body.
 - **Effort:** medium
 - **Решение:** Все модалки мигрированы на нативный `<dialog>` элемент через shared Modal компонент (`401ce84`). Focus trap, scroll blocking, Escape, backdrop click, ARIA-атрибуты, focus restore. 41 тест.
+- **Регрессия исправлена (2026-04-06):** Глобальный CSS reset (`* { margin: 0 }`) перезаписывал `margin: auto` у `<dialog>`, модалки прилипали к верхнему левому углу. Фикс: явный `margin: auto` в `.modal`.
 
 ### [72] Отсутствуют ARIA-атрибуты на интерактивных элементах
 

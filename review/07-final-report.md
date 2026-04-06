@@ -44,6 +44,7 @@
 - **Effort:** medium
 - **Корректировка адвоката:** 82 -> 72. Для internal developer tool a11y-проблемы модалок имеют меньший импакт, но объективное нарушение WCAG.
 - **Решение:** Все модалки мигрированы на нативный `<dialog>` элемент через shared Modal компонент (`401ce84`). Реализовано: focus trap, scroll blocking, Escape handling, backdrop click, `aria-labelledby`/`aria-describedby`, focus save/restore. 41 юнит-тест.
+- **Регрессия исправлена (2026-04-06):** Глобальный CSS reset (`* { margin: 0 }` в `global.css`) перезаписывал UA-стиль `margin: auto` у `<dialog>`, из-за чего модалки прилипали к верхнему левому углу. Фикс: явный `margin: auto` в `.modal`.
 
 ### ~~[72] Отсутствуют ARIA-атрибуты на картах голосования~~ ✅ RESOLVED
 - **Status:** ✅ RESOLVED (2026-04-05, commit: `759bfcd`)

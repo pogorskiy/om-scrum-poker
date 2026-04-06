@@ -4,6 +4,7 @@
   background: transparent;
   max-width: 90vw;
   max-height: 90vh;
+  margin: auto;
 }
 
 .modal::backdrop {
