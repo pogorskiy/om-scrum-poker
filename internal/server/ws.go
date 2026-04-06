@@ -21,6 +21,17 @@ var (
 
 const maxMessageSize = 4096 // 4 KB
 
+// makeEnvelopeOrLog creates a JSON envelope and logs on failure.
+// Returns nil if serialization fails, so callers can safely nil-check.
+func makeEnvelopeOrLog(eventType string, payload interface{}) []byte {
+	msg, err := MakeEnvelope(eventType, payload)
+	if err != nil {
+		log.Printf("MakeEnvelope(%s): %v", eventType, err)
+		return nil
+	}
+	return msg
+}
+
 // buildAcceptOptions creates WebSocket accept options based on allowed origins.
 // If origins contains "*", all origins are allowed (InsecureSkipVerify).
 // If origins is non-empty, only the specified origin patterns are allowed.
@@ -93,11 +104,10 @@ func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, trustProxy bool
 				}
 				room.Unlock()
 
-				msg, _ := MakeEnvelope("presence_changed", PresenceChangedPayload{
+				if msg := makeEnvelopeOrLog("presence_changed", PresenceChangedPayload{
 					SessionID: sid,
 					Status:    "disconnected",
-				})
-				if msg != nil {
+				}); msg != nil {
 					manager.Broadcast(roomID, msg)
 				}
 			}
@@ -219,29 +229,26 @@ func handleJoin(client *Client, manager *RoomManager, limiter *RateLimiter, ip s
 	state := manager.BuildRoomState(room)
 	room.Unlock()
 
-	stateMsg, _ := MakeEnvelope("room_state", state)
-	if stateMsg != nil {
+	if stateMsg := makeEnvelopeOrLog("room_state", state); stateMsg != nil {
 		client.Send(stateMsg)
 	}
 
 	// Broadcast join to others.
 	if isNew {
-		joinMsg, _ := MakeEnvelope("participant_joined", ParticipantJoinedPayload{
+		if joinMsg := makeEnvelopeOrLog("participant_joined", ParticipantJoinedPayload{
 			SessionID: p.SessionID,
 			UserName:  p.UserName,
 			Status:    "active",
 			Role:      participant.Role,
-		})
-		if joinMsg != nil {
+		}); joinMsg != nil {
 			manager.BroadcastExcept(client.roomID, joinMsg, client)
 		}
 	} else {
 		// Rejoin — broadcast presence change.
-		presMsg, _ := MakeEnvelope("presence_changed", PresenceChangedPayload{
+		if presMsg := makeEnvelopeOrLog("presence_changed", PresenceChangedPayload{
 			SessionID: p.SessionID,
 			Status:    "active",
-		})
-		if presMsg != nil {
+		}); presMsg != nil {
 			manager.BroadcastExcept(client.roomID, presMsg, client)
 		}
 	}
@@ -276,13 +283,11 @@ func handleVote(client *Client, manager *RoomManager, payload json.RawMessage) {
 	}
 
 	if p.Value == "" && hadVote {
-		msg, _ := MakeEnvelope("vote_retracted", VoteRetractedPayload{SessionID: client.SessionID()})
-		if msg != nil {
+		if msg := makeEnvelopeOrLog("vote_retracted", VoteRetractedPayload{SessionID: client.SessionID()}); msg != nil {
 			manager.Broadcast(client.roomID, msg)
 		}
 	} else if p.Value != "" {
-		msg, _ := MakeEnvelope("vote_cast", VoteCastPayload{SessionID: client.SessionID()})
-		if msg != nil {
+		if msg := makeEnvelopeOrLog("vote_cast", VoteCastPayload{SessionID: client.SessionID()}); msg != nil {
 			manager.Broadcast(client.roomID, msg)
 		}
 	}
@@ -309,8 +314,7 @@ func handleReveal(client *Client, manager *RoomManager) {
 		return
 	}
 
-	msg, _ := MakeEnvelope("votes_revealed", result)
-	if msg != nil {
+	if msg := makeEnvelopeOrLog("votes_revealed", result); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
 }
@@ -328,17 +332,20 @@ func handleNewRound(client *Client, manager *RoomManager) {
 	}
 
 	room.Lock()
-	room.NewRound()
+	err := room.NewRound()
 	timerSnapshot := room.TimerInfo()
 	room.Unlock()
 
-	msg, _ := MakeEnvelope("round_reset", struct{}{})
-	if msg != nil {
+	if err != nil {
+		client.SendError("invalid_message", err.Error())
+		return
+	}
+
+	if msg := makeEnvelopeOrLog("round_reset", struct{}{}); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
 
-	timerMsg, _ := MakeEnvelope("timer_updated", buildTimerPayload(timerSnapshot))
-	if timerMsg != nil {
+	if timerMsg := makeEnvelopeOrLog("timer_updated", buildTimerPayload(timerSnapshot)); timerMsg != nil {
 		manager.Broadcast(client.roomID, timerMsg)
 	}
 }
@@ -356,8 +363,7 @@ func handleClearRoom(client *Client, manager *RoomManager) {
 	}
 
 	// Broadcast before clearing so all connected clients receive the event.
-	msg, _ := MakeEnvelope("room_cleared", struct{}{})
-	if msg != nil {
+	if msg := makeEnvelopeOrLog("room_cleared", struct{}{}); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
 
@@ -393,11 +399,10 @@ func handleUpdateName(client *Client, manager *RoomManager, payload json.RawMess
 		return
 	}
 
-	msg, _ := MakeEnvelope("name_updated", NameUpdatedPayload{
+	if msg := makeEnvelopeOrLog("name_updated", NameUpdatedPayload{
 		SessionID: client.SessionID(),
 		UserName:  p.UserName,
-	})
-	if msg != nil {
+	}); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
 }
@@ -429,11 +434,10 @@ func handlePresence(client *Client, manager *RoomManager, payload json.RawMessag
 		return
 	}
 
-	msg, _ := MakeEnvelope("presence_changed", PresenceChangedPayload{
+	if msg := makeEnvelopeOrLog("presence_changed", PresenceChangedPayload{
 		SessionID: client.SessionID(),
 		Status:    p.Status,
-	})
-	if msg != nil {
+	}); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
 }
@@ -465,11 +469,10 @@ func handleUpdateRole(client *Client, manager *RoomManager, payload json.RawMess
 		return
 	}
 
-	msg, _ := MakeEnvelope("role_updated", RoleUpdatedPayload{
+	if msg := makeEnvelopeOrLog("role_updated", RoleUpdatedPayload{
 		SessionID: client.SessionID(),
 		Role:      p.Role,
-	})
-	if msg != nil {
+	}); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
 }
@@ -515,8 +518,7 @@ func handleTimerSetDuration(client *Client, manager *RoomManager, payload json.R
 	snapshot := room.TimerInfo()
 	room.Unlock()
 
-	msg, _ := MakeEnvelope("timer_updated", buildTimerPayload(snapshot))
-	if msg != nil {
+	if msg := makeEnvelopeOrLog("timer_updated", buildTimerPayload(snapshot)); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
 }
@@ -541,8 +543,7 @@ func handleTimerStart(client *Client, manager *RoomManager) {
 	snapshot := room.TimerInfo()
 	room.Unlock()
 
-	msg, _ := MakeEnvelope("timer_updated", buildTimerPayload(snapshot))
-	if msg != nil {
+	if msg := makeEnvelopeOrLog("timer_updated", buildTimerPayload(snapshot)); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
 }
@@ -567,8 +568,7 @@ func handleTimerReset(client *Client, manager *RoomManager) {
 	snapshot := room.TimerInfo()
 	room.Unlock()
 
-	msg, _ := MakeEnvelope("timer_updated", buildTimerPayload(snapshot))
-	if msg != nil {
+	if msg := makeEnvelopeOrLog("timer_updated", buildTimerPayload(snapshot)); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
 }
@@ -587,8 +587,7 @@ func handleLeave(client *Client, manager *RoomManager) {
 	room.Leave(client.SessionID())
 	room.Unlock()
 
-	msg, _ := MakeEnvelope("participant_left", ParticipantLeftPayload{SessionID: client.SessionID()})
-	if msg != nil {
+	if msg := makeEnvelopeOrLog("participant_left", ParticipantLeftPayload{SessionID: client.SessionID()}); msg != nil {
 		manager.BroadcastExcept(client.roomID, msg, client)
 	}
 
