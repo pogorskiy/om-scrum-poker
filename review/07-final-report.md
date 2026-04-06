@@ -271,10 +271,12 @@
 - **Рекомендация:** Добавить "Your vote: X" над заблокированной колодой и пояснение "Voting locked until new round".
 - **Effort:** low
 
-### [55] Нет ограничения на количество одновременных подключений с одного IP
+### ~~[55] Нет ограничения на количество одновременных подключений с одного IP~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-06)
+- **Решение:** Added `ConnTracker` — thread-safe per-IP and global concurrent WebSocket connection tracker. Defaults: 100 per IP (NAT-friendly for offices), 1000 global. Configurable via `MAX_CONNS_PER_IP` and `MAX_TOTAL_CONNS` env vars. `defer tracker.Remove(ip)` guarantees cleanup on all exit paths. 9 unit tests including concurrent access. Env var validation rejects non-positive values.
 - **Severity:** MEDIUM
 - **Источники:** безопасность
-- **Файл:** internal/server/ratelimit.go:62-68
+- **Файл:** internal/server/conntracker.go, internal/server/ws.go:50-54
 - **Проблема:** Rate-limit ограничивает частоту подключений (20/мин), но не количество одновременных. Атакующий может медленно открыть сотни соединений.
 - **Влияние:** Исчерпание горутин, памяти, дескрипторов файлов.
 - **Рекомендация:** Добавить счётчик активных соединений per-IP (лимит 10-20).

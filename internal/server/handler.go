@@ -34,14 +34,14 @@ type HealthResponse struct {
 // NewServer creates and configures the HTTP server.
 // The embedFS parameter should be the embedded web/dist filesystem; it may
 // be empty (zero value) for development when the frontend is served by Vite.
-func NewServer(config Config, manager *RoomManager, limiter *RateLimiter, embedFS embed.FS) *http.Server {
+func NewServer(config Config, manager *RoomManager, limiter *RateLimiter, tracker *ConnTracker, embedFS embed.FS) *http.Server {
 	mux := http.NewServeMux()
 
 	// Health check.
 	mux.HandleFunc("/health", handleHealth(manager, config.BuildTime))
 
 	// WebSocket endpoint.
-	mux.HandleFunc("/ws/", HandleWebSocket(manager, limiter, config.TrustProxy, config.AllowedOrigins))
+	mux.HandleFunc("/ws/", HandleWebSocket(manager, limiter, tracker, config.TrustProxy, config.AllowedOrigins))
 
 	// SPA fallback: serve static files or index.html.
 	mux.HandleFunc("/", handleSPA(embedFS))

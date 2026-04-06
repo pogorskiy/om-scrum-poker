@@ -334,7 +334,7 @@ func TestNewServer_ReadHeaderTimeout(t *testing.T) {
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
 	var emptyFS embed.FS
 
-	srv := NewServer(Config{Host: "127.0.0.1", Port: "0"}, rm, limiter, emptyFS)
+	srv := NewServer(Config{Host: "127.0.0.1", Port: "0"}, rm, limiter, NewConnTracker(DefaultConnTrackerConfig()), emptyFS)
 
 	if srv.ReadHeaderTimeout != 5*time.Second {
 		t.Errorf("ReadHeaderTimeout = %v, want %v", srv.ReadHeaderTimeout, 5*time.Second)
@@ -346,7 +346,7 @@ func TestNewServer_IdleTimeout(t *testing.T) {
 	limiter := NewRateLimiter(DefaultRateLimitConfig())
 	var emptyFS embed.FS
 
-	srv := NewServer(Config{Host: "127.0.0.1", Port: "0"}, rm, limiter, emptyFS)
+	srv := NewServer(Config{Host: "127.0.0.1", Port: "0"}, rm, limiter, NewConnTracker(DefaultConnTrackerConfig()), emptyFS)
 
 	if srv.IdleTimeout != 60*time.Second {
 		t.Errorf("IdleTimeout = %v, want %v", srv.IdleTimeout, 60*time.Second)

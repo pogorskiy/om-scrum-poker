@@ -70,6 +70,8 @@ Full protocol spec: [docs/planning/04-architecture.md](docs/planning/04-architec
 | `PORT`        | `8080`    | Listen port                      |
 | `TRUST_PROXY` | `false`   | Trust X-Forwarded-For for rate limiting |
 | `ALLOWED_ORIGINS` | (empty)   | Comma-separated allowed WebSocket origins. `*` = allow all. Empty = same-origin only. |
+| `MAX_CONNS_PER_IP` | `100`    | Max concurrent WebSocket connections per IP |
+| `MAX_TOTAL_CONNS` | `1000`    | Max total concurrent WebSocket connections |
 
 ## Conventions
 

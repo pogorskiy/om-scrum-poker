@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -27,12 +28,16 @@ func main() {
 
 	manager := server.NewRoomManager()
 	limiter := server.NewRateLimiter(server.DefaultRateLimitConfig())
+	tracker := server.NewConnTracker(server.ConnTrackerConfig{
+		MaxPerIP: getEnvInt("MAX_CONNS_PER_IP", 100),
+		MaxTotal: getEnvInt("MAX_TOTAL_CONNS", 1000),
+	})
 
 	stopGC := manager.StartGC()
 	defer stopGC()
 	defer limiter.Close()
 
-	srv := server.NewServer(config, manager, limiter, web.DistFS)
+	srv := server.NewServer(config, manager, limiter, tracker, web.DistFS)
 
 	// Graceful shutdown.
 	shutdown := make(chan os.Signal, 1)
@@ -83,4 +88,17 @@ func getEnv(key, fallback string) string {
 		return val
 	}
 	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	val := os.Getenv(key)
+	if val == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(val)
+	if err != nil || n <= 0 {
+		log.Printf("Invalid %s value %q, using default %d", key, val, fallback)
+		return fallback
+	}
+	return n
 }
