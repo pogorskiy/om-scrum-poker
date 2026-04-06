@@ -114,3 +114,22 @@
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
+
+.header__clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs);
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 150ms, background 150ms;
+  flex-shrink: 0;
+}
+
+.header__clear-btn:hover {
+  color: var(--color-status-disconnected);
+  background: var(--color-border);
+}

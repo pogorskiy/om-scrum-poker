@@ -12,8 +12,16 @@
   display: flex;
   gap: var(--space-sm);
   justify-content: center;
+  align-items: center;
   padding: var(--space-md) 0;
   flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .room__actions {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 .room__action-btn {
@@ -40,17 +48,6 @@
 
 .room__action-btn--secondary:hover {
   background: var(--color-border-hover);
-}
-
-.room__action-btn--danger {
-  background: transparent;
-  color: var(--color-status-disconnected);
-  border: 1px solid var(--color-status-disconnected);
-}
-
-.room__action-btn--danger:hover {
-  background: var(--color-status-disconnected);
-  color: white;
 }
 
 .room__result {

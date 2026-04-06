@@ -1,5 +1,4 @@
 import { useEffect } from 'preact/hooks';
-import { useState } from 'preact/hooks';
 import {
   roomState,
   connectionStatus,
@@ -17,7 +16,7 @@ import { ParticipantList } from '../ParticipantList/ParticipantList';
 import { CardDeck } from '../CardDeck/CardDeck';
 import { NameEntryModal } from '../NameEntryModal/NameEntryModal';
 import { ConnectionBanner } from '../ConnectionBanner/ConnectionBanner';
-import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
+import { Timer } from '../Timer/Timer';
 import './RoomPage.css';
 
 interface Props {
@@ -25,7 +24,6 @@ interface Props {
 }
 
 export function RoomPage({ path }: Props) {
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const name = userName.value;
   const roomId = parseRoomId(path);
 
@@ -72,15 +70,6 @@ export function RoomPage({ path }: Props) {
     send({ type: 'new_round', payload: {} });
   }
 
-  function handleClearRoom() {
-    setShowClearConfirm(true);
-  }
-
-  function confirmClear() {
-    send({ type: 'clear_room', payload: {} });
-    setShowClearConfirm(false);
-  }
-
   return (
     <div class="room">
       <Header />
@@ -124,6 +113,7 @@ export function RoomPage({ path }: Props) {
 
       {/* Action buttons */}
       <div class="room__actions">
+        <Timer />
         {!revealed && (
           <button
             class="room__action-btn room__action-btn--primary"
@@ -141,24 +131,9 @@ export function RoomPage({ path }: Props) {
             New Round
           </button>
         )}
-        <button
-          class="room__action-btn room__action-btn--danger"
-          onClick={handleClearRoom}
-        >
-          Clear Room
-        </button>
       </div>
 
       <CardDeck />
-
-      {showClearConfirm && (
-        <ConfirmDialog
-          title="Clear Room?"
-          message="This will remove all participants."
-          onConfirm={confirmClear}
-          onCancel={() => setShowClearConfirm(false)}
-        />
-      )}
     </div>
   );
 }
