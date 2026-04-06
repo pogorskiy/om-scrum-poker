@@ -49,7 +49,7 @@ func buildAcceptOptions(allowedOrigins []string) *websocket.AcceptOptions {
 }
 
 // HandleWebSocket upgrades HTTP to WebSocket and manages the connection lifecycle.
-func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, trustProxy bool, allowedOrigins []string) http.HandlerFunc {
+func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, tracker *ConnTracker, trustProxy bool, allowedOrigins []string) http.HandlerFunc {
 	acceptOpts := buildAcceptOptions(allowedOrigins)
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip := clientIP(r, trustProxy)
@@ -57,6 +57,12 @@ func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, trustProxy bool
 			http.Error(w, "rate limited", http.StatusTooManyRequests)
 			return
 		}
+
+		if !tracker.TryAdd(ip) {
+			http.Error(w, "too many connections", http.StatusTooManyRequests)
+			return
+		}
+		defer tracker.Remove(ip)
 
 		// Extract room ID from path: /ws/{roomID}
 		roomID := strings.TrimPrefix(r.URL.Path, "/ws/")
