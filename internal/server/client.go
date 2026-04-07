@@ -53,12 +53,15 @@ func NewClient(conn *websocket.Conn, roomID string, manager *RoomManager) *Clien
 	}
 }
 
-// Send queues a message for sending. Non-blocking; drops message if buffer full.
+// Send queues a message for sending. Non-blocking; closes connection if buffer full.
+// A full buffer means the client is too slow to keep up. Closing triggers
+// reconnect, which delivers a fresh room_state.
 func (c *Client) Send(msg []byte) {
 	select {
 	case c.send <- msg:
 	default:
-		log.Printf("client %s: send buffer full, dropping message", c.SessionID())
+		log.Printf("client %s: send buffer full, closing connection", c.SessionID())
+		c.Close()
 	}
 }
 
