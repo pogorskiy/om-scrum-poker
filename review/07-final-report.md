@@ -209,10 +209,12 @@
 - **Рекомендация:** Добавить `RoomName` в JoinPayload или обновить документацию.
 - **Effort:** low
 
-### [58] TRUST_PROXY без валидации источника
+### [58] ~~TRUST_PROXY без валидации источника~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-07)
+- **Решение:** Documented as an intentional design decision. DEPLOYMENT.md now contains an explicit security warning that `TRUST_PROXY=true` must only be used behind a trusted reverse proxy. All deployment examples (Nginx, systemd, Docker Compose) already show TRUST_PROXY behind Nginx. Adding a whitelist of trusted proxy IPs would violate the KISS principle and is unnecessary when the application is properly deployed behind a reverse proxy that overwrites the header.
 - **Severity:** MEDIUM
 - **Источники:** безопасность
-- **Файл:** internal/server/ws.go:417-433
+- **Файл:** internal/server/ws.go:417-433, docs/DEPLOYMENT.md
 - **Проблема:** При `TRUST_PROXY=true` сервер доверяет `X-Forwarded-For` из любого запроса. Любой клиент может подставить произвольный IP и обойти rate-limiting.
 - **Влияние:** Полный обход rate-limiting при TRUST_PROXY=true.
 - **Рекомендация:** Добавить whitelist доверенных прокси-адресов или задокументировать, что TRUST_PROXY только за проверенным reverse proxy.
@@ -293,7 +295,9 @@
 - **Рекомендация:** Увеличить до 2048 или 4096.
 - **Effort:** low
 
-### [55] Toast-уведомления недоступны для скринридеров
+### [55] ~~Toast-уведомления недоступны для скринридеров~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-07)
+- **Решение:** Individual toast divs now have proper ARIA attributes: error toasts get `role="alert"` + `aria-live="assertive"`, info toasts get `role="status"` + `aria-live="polite"`. Screen readers will announce both types appropriately.
 - **Severity:** MEDIUM
 - **Источники:** фронтенд
 - **Файл:** web/src/components/Toast/Toast.tsx
@@ -356,10 +360,12 @@
 - **Effort:** low
 - **Корректировка адвоката:** 82 -> 50. 128 бит энтропии делает brute force нереальным. Проблема в валидации формата, не в session hijacking.
 
-### [50] Rate-limit на WebSocket-сообщения отсутствует
+### [50] ~~Rate-limit на WebSocket-сообщения отсутствует~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-07)
+- **Решение:** Added `MsgRateLimiter` — per-connection token bucket (20 msg/sec burst, 20 tokens/sec refill). Integrated into `readPump()`: each connection gets its own limiter. On exceeding: sends `rate_limited` error and disconnects. Does not affect large rooms — limit is per client sending, not per room receiving. Server→client broadcasts via Send() are unrestricted. 5 unit tests including concurrent access.
 - **Severity:** MEDIUM
 - **Источники:** бекенд, безопасность, архитектор, адвокат дьявола
-- **Файл:** internal/server/ws.go:83-106
+- **Файл:** internal/server/msg_rate_limiter.go, internal/server/ws.go:127-147
 - **Проблема:** После подключения клиент может отправлять неограниченное количество сообщений. Broadcast усиливает нагрузку.
 - **Влияние:** Один клиент может flood-ить сервер, создавая нагрузку на всех участников комнаты.
 - **Рекомендация:** Добавить per-connection rate limit (10-20 msg/sec).
@@ -375,10 +381,12 @@
 - **Рекомендация:** Оставить только `status: ok` для публичного доступа.
 - **Effort:** low
 
-### [50] Toast-уведомления исчезают слишком быстро для ошибок
+### [50] ~~Toast-уведомления исчезают слишком быстро для ошибок~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-07)
+- **Решение:** Error toasts now stay visible for 5000ms (was 2300ms). Info toasts remain at 2300ms. The `addToast()` function selects timeout based on toast type.
 - **Severity:** MEDIUM
 - **Источники:** продукт
-- **Файл:** web/src/state.ts:136-138
+- **Файл:** web/src/state.ts:165
 - **Проблема:** Все toast-ы исчезают через 2300ms, включая error-сообщения.
 - **Влияние:** Пользователь может пропустить важное сообщение об ошибке.
 - **Рекомендация:** Увеличить время для error-toast-ов до 5-8 секунд.
@@ -394,10 +402,12 @@
 - **Effort:** medium
 - **Корректировка адвоката:** 72 -> 50. Scrum poker сессия эфемерна, рестарт — редкое событие, reconnect автоматический.
 
-### [48] Send buffer drop без уведомления клиента
+### [48] ~~Send buffer drop без уведомления клиента~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-07)
+- **Решение:** Send() now calls `c.Close()` on buffer overflow instead of silently dropping. This closes the `done` channel, causing WritePump and readPump to exit cleanly. The client auto-reconnects with exponential backoff and receives a fresh `room_state`. Safe due to `closeOnce` preventing double-close panics. 3 unit tests: buffer full closes, buffer not full doesn't close, double overflow no panic.
 - **Severity:** MEDIUM
 - **Источники:** архитектор
-- **Файл:** internal/server/client.go:42-48
+- **Файл:** internal/server/client.go:59-64
 - **Проблема:** При переполнении send buffer (32 сообщения) сообщение тихо отбрасывается. Клиент не знает о потере.
 - **Влияние:** UI показывает устаревшие данные при медленной сети.
 - **Рекомендация:** При переполнении — закрывать соединение, чтобы клиент переподключился и получил свежий room_state.
@@ -412,10 +422,12 @@
 - **Рекомендация:** Для текущего масштаба приемлемо. При росте — отдельные сигналы для participants.
 - **Effort:** high
 
-### [48] Автоматическая генерация имени комнаты: несоответствие вводу
+### [48] ~~Автоматическая генерация имени комнаты: несоответствие вводу~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-07, validated)
+- **Решение:** The client now sends `roomName` in the join payload (ws.ts:330-331 uses `generateRoomName(currentRoomId)` which converts the slug to a human-readable name). The server accepts `roomName` from the payload and only falls back to `userName + "'s Room"` when `roomName` is empty (ws.go:210-213). The join payload includes `roomName` in the `ClientMessage` type definition (state.ts:65).
 - **Severity:** MEDIUM
 - **Источники:** продукт
-- **Файл:** internal/server/ws.go:155
+- **Файл:** internal/server/ws.go:210-213, web/src/ws.ts:330-331
 - **Проблема:** Имя комнаты формируется как `userName + "'s Room"`, а не из пользовательского ввода на домашней странице.
 - **Влияние:** Имя комнаты в Header не соответствует ожиданиям.
 - **Рекомендация:** Передавать roomName в join payload.
@@ -439,28 +451,34 @@
 - **Рекомендация:** `max-height: 40vh; overflow-y: auto` или sticky CardDeck.
 - **Effort:** low
 
-### [45] Нет валидации входящих WebSocket-сообщений на клиенте
+### [45] ~~Нет валидации входящих WebSocket-сообщений на клиенте~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-07)
+- **Решение:** Added `isValidServerMessage()` type guard in ws.ts that validates parsed JSON is a non-null object (not array) with a string `type` and a `payload` property. Malformed messages are logged and ignored. Defense in depth without overengineering.
 - **Severity:** MEDIUM
 - **Источники:** фронтенд
-- **Файл:** web/src/ws.ts:55-62
+- **Файл:** web/src/ws.ts:69-75
 - **Проблема:** JSON.parse оборачивается в try/catch, но результат кастуется через `as ServerMessage` без runtime-проверки.
 - **Влияние:** Маловероятно при контролируемом сервере, но нарушает defense in depth.
 - **Рекомендация:** Минимальная проверка наличия `type` и `payload` перед switch.
 - **Effort:** low
 
-### [45] Имя пользователя не санитизируется, только обрезается по длине
+### [45] ~~Имя пользователя не санитизируется, только обрезается по длине~~ ✅ RESOLVED
+- **Status:** ✅ RESOLVED (2026-04-07)
+- **Решение:** Added `sanitizeName()` function in domain/room.go that strips ASCII control chars (0x00-0x1F, 0x7F), Unicode Cc/Cf categories, zero-width chars (U+200B-200F, U+2028-202F, U+2060-2069, U+FEFF), and trims whitespace. Normal spaces within names preserved ("John Doe" is valid). Applied in both `Join()` and `UpdateName()` before empty check. Names that become empty after sanitization return an error. Broadcast handlers use sanitized names. 30+ test cases covering: normal names, spaces, control chars, RTL markers, zero-width, BOM, emoji, CJK, Cyrillic, Arabic, integration tests for Join and UpdateName.
 - **Severity:** MEDIUM
 - **Источники:** безопасность
-- **Файл:** internal/domain/room.go:90-95
+- **Файл:** internal/domain/room.go:148-181, internal/domain/sanitize_test.go
 - **Проблема:** Допускаются управляющие символы, невидимые Unicode-символы, RTL-маркеры. Log injection через имена с `\n`. Имя из только пробелов/невидимых символов проходит проверку.
 - **Влияние:** Log injection, визуальный спуфинг.
 - **Рекомендация:** Trim пробелов на бэкенде, удаление управляющих символов.
 - **Effort:** low
 
-### [45] conn.Close вызывается после cleanup
+### [45] ~~conn.Close вызывается после cleanup~~ NOT AN ISSUE
+- **Status:** ✅ NOT AN ISSUE (2026-04-07, validated)
+- **Решение:** After thorough analysis: `conn.Close()` in nhooyr.io/websocket writes the close frame directly with its own internal 5-second deadline — it does not depend on the context. The return value is already ignored. The order (client.Close → UnregisterClient → conn.Close) is functionally correct. `client.Close()` closes the `done` channel stopping WritePump, then `conn.Close()` sends the close frame on the TCP connection. No code changes needed.
 - **Severity:** MEDIUM
 - **Источники:** бекенд
-- **Файл:** internal/server/ws.go:79
+- **Файл:** internal/server/ws.go:122
 - **Проблема:** `conn.Close` вызывается после `client.Close()` и `UnregisterClient()`, когда соединение может быть уже закрыто.
 - **Влияние:** Минимальное — ложные ошибки в логах.
 - **Рекомендация:** Явно игнорировать ошибку или изменить порядок cleanup.

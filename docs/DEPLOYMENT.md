@@ -404,6 +404,11 @@ Use the same Nginx reverse proxy config (Option A, step 5) in front of Docker.
 | `PORT` | `8080` | HTTP port |
 | `HOST` | `0.0.0.0` | Bind address |
 | `TRUST_PROXY` | `false` | Trust `X-Forwarded-For` header (set `true` behind Nginx) |
+| `ALLOWED_ORIGINS` | (empty) | Comma-separated allowed WebSocket origins. `*` = allow all. Empty = same-origin only |
+| `MAX_CONNS_PER_IP` | `100` | Max concurrent WebSocket connections per IP |
+| `MAX_TOTAL_CONNS` | `1000` | Max total concurrent WebSocket connections |
+
+> **Security note on `TRUST_PROXY`:** When enabled, the server trusts `X-Forwarded-For` and `X-Real-IP` headers from **any** request to determine the client IP for rate limiting. Only set `TRUST_PROXY=true` when the application runs behind a trusted reverse proxy (e.g., Nginx, Caddy, AWS ALB) that overwrites these headers. If clients can connect directly to the application with `TRUST_PROXY=true`, they can spoof their IP and bypass rate limits.
 
 ---
 
