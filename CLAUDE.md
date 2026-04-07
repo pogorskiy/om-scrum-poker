@@ -73,6 +73,10 @@ Full protocol spec: [docs/planning/04-architecture.md](docs/planning/04-architec
 | `MAX_CONNS_PER_IP` | `100`    | Max concurrent WebSocket connections per IP |
 | `MAX_TOTAL_CONNS` | `1000`    | Max total concurrent WebSocket connections |
 
+## UX Rules
+
+- **Participant list must NOT be re-sorted by status.** Order is by join time (as returned by the server). Sorting by active/idle/disconnected causes names to jump around and confuses users. This is intentional — do not add status-based sorting.
+
 ## Conventions
 
 - Go code: standard `gofmt` formatting, no linter config needed
