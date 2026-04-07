@@ -2,9 +2,11 @@ package domain
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 )
 
 // TimerState represents the current state of the room timer.
@@ -141,10 +143,48 @@ func (r *Room) Lock() { r.mu.Lock() }
 // Unlock releases the room mutex.
 func (r *Room) Unlock() { r.mu.Unlock() }
 
+// sanitizeName removes control characters, invisible Unicode, and zero-width
+// characters from a display name. Normal spaces (U+0020) are preserved.
+func sanitizeName(name string) string {
+	name = strings.TrimSpace(name)
+	var b strings.Builder
+	for _, r := range name {
+		// Keep normal printable characters (including space U+0020).
+		if r == ' ' {
+			b.WriteRune(r)
+			continue
+		}
+		// Remove ASCII control characters (0x00-0x1F, 0x7F).
+		if r <= 0x1F || r == 0x7F {
+			continue
+		}
+		// Remove Unicode control characters (Cc, Cf).
+		if unicode.Is(unicode.Cc, r) || unicode.Is(unicode.Cf, r) {
+			continue
+		}
+		// Remove zero-width and invisible formatting characters.
+		if r >= 0x200B && r <= 0x200F {
+			continue
+		}
+		if r >= 0x2028 && r <= 0x202F {
+			continue
+		}
+		if r >= 0x2060 && r <= 0x2069 {
+			continue
+		}
+		if r == 0xFEFF {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return strings.TrimSpace(b.String())
+}
+
 // Join adds or re-joins a participant. Returns (participant, isNew).
 // Role must be "voter" or "observer"; empty defaults to "voter".
 // Must be called with lock held.
 func (r *Room) Join(sessionID, name, role string) (*Participant, bool, error) {
+	name = sanitizeName(name)
 	if name == "" {
 		return nil, false, fmt.Errorf("invalid_name: name cannot be empty")
 	}
@@ -280,6 +320,7 @@ func (r *Room) ClearRoom() {
 // UpdateName changes a participant's display name.
 // Must be called with lock held.
 func (r *Room) UpdateName(sessionID, name string) error {
+	name = sanitizeName(name)
 	if name == "" {
 		return fmt.Errorf("invalid_name: name cannot be empty")
 	}
