@@ -1,1 +1,1 @@
-declare const __BUILD_TIMESTAMP__: string;
+/// <reference types="vite/client" />
