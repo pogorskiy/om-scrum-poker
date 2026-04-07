@@ -65,11 +65,25 @@ function getReconnectDelay(): number {
   return base + jitter;
 }
 
+// Validate that parsed data looks like a ServerMessage
+function isValidServerMessage(data: unknown): data is ServerMessage {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return false;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.type !== 'string') return false;
+  if (!('payload' in obj)) return false;
+  return true;
+}
+
 // Handle incoming server messages
 function handleMessage(event: MessageEvent): void {
   let msg: ServerMessage;
   try {
-    msg = JSON.parse(event.data as string) as ServerMessage;
+    const parsed: unknown = JSON.parse(event.data as string);
+    if (!isValidServerMessage(parsed)) {
+      console.warn('[ws] malformed server message, ignoring:', event.data);
+      return;
+    }
+    msg = parsed;
   } catch {
     return;
   }

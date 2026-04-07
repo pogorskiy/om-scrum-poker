@@ -11,6 +11,8 @@ export function Toast() {
         <div
           key={t.id}
           class={`toast${t.type === 'error' ? ' toast--error' : ''}`}
+          role={t.type === 'error' ? 'alert' : 'status'}
+          aria-live={t.type === 'error' ? 'assertive' : 'polite'}
         >
           {t.message}
         </div>

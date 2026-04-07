@@ -162,9 +162,10 @@ export function addToast(message: string, type: 'info' | 'error' = 'info'): void
   // Keep max 3, newest first
   toasts.value = [{ id, message, type }, ...current].slice(0, 3);
 
+  const timeout = type === 'error' ? 5000 : 2300;
   setTimeout(() => {
     toasts.value = toasts.value.filter((t) => t.id !== id);
-  }, 2300);
+  }, timeout);
 }
 
 export function navigate(path: string): void {
