@@ -33,6 +33,8 @@ jobs:
             docker rm poker || true
             docker run -d --name poker --restart unless-stopped \
               -p 127.0.0.1:8080:8080 \
+              --ulimit nofile=65535:65535 \
               -e ALLOWED_ORIGINS='${{ secrets.ALLOWED_ORIGINS }}' \
               -e TRUST_PROXY=true \
+              -e MAX_CONNS_PER_IP=200 \
               ghcr.io/${{ github.repository }}:latest
