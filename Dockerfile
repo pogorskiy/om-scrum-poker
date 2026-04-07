@@ -13,7 +13,7 @@ COPY go.* ./
 RUN go mod download
 COPY . .
 COPY --from=frontend /app/web/dist web/dist
-RUN CGO_ENABLED=0 go build -o /om-scrum-poker ./cmd/server
+RUN CGO_ENABLED=0 go build -ldflags "-X main.buildTime=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" -o /om-scrum-poker ./cmd/server
 
 # Stage 3: Minimal runtime image
 FROM scratch
