@@ -124,6 +124,8 @@ func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, tracker *ConnTr
 }
 
 func readPump(ctx context.Context, client *Client, manager *RoomManager, limiter *RateLimiter, ip string) {
+	msgLimiter := DefaultMsgRateLimiter()
+
 	for {
 		_, data, err := client.conn.Read(ctx)
 		if err != nil {
@@ -135,6 +137,12 @@ func readPump(ctx context.Context, client *Client, manager *RoomManager, limiter
 				return
 			}
 			log.Printf("client %s: read error: %v", client.SessionID(), err)
+			return
+		}
+
+		if !msgLimiter.Allow() {
+			client.SendError("rate_limited", "too many messages")
+			log.Printf("client %s: message rate limit exceeded, disconnecting", client.SessionID())
 			return
 		}
 
@@ -243,7 +251,7 @@ func handleJoin(client *Client, manager *RoomManager, limiter *RateLimiter, ip s
 	if isNew {
 		if joinMsg := makeEnvelopeOrLog("participant_joined", ParticipantJoinedPayload{
 			SessionID: p.SessionID,
-			UserName:  p.UserName,
+			UserName:  participant.Name,
 			Status:    "active",
 			Role:      participant.Role,
 		}); joinMsg != nil {
@@ -398,6 +406,12 @@ func handleUpdateName(client *Client, manager *RoomManager, payload json.RawMess
 
 	room.Lock()
 	err := room.UpdateName(client.SessionID(), p.UserName)
+	var sanitizedName string
+	if err == nil {
+		if part, ok := room.Participants[client.SessionID()]; ok {
+			sanitizedName = part.Name
+		}
+	}
 	room.Unlock()
 
 	if err != nil {
@@ -407,7 +421,7 @@ func handleUpdateName(client *Client, manager *RoomManager, payload json.RawMess
 
 	if msg := makeEnvelopeOrLog("name_updated", NameUpdatedPayload{
 		SessionID: client.SessionID(),
-		UserName:  p.UserName,
+		UserName:  sanitizedName,
 	}); msg != nil {
 		manager.Broadcast(client.roomID, msg)
 	}
