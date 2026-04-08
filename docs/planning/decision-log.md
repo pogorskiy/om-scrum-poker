@@ -44,3 +44,12 @@
 **Key decisions:** Re-check conditions before delete to handle state changes between phases
 **Tests added:** `TestCollectGarbage_RechecksBeforeDelete` in `internal/server/room_manager_test.go`
 **Status:** ✅ Resolved
+
+## 2026-04-08 — Race condition on disconnect: broadcast after UnregisterClient
+
+**Problem:** UnregisterClient removed client before setting status to "disconnected", allowing stale "active" in room_state
+**Solution:** Reorder: set status + broadcast before UnregisterClient
+**Agents involved:** backend
+**Key decisions:** Simple reorder preferred over new atomic method — KISS principle
+**Tests added:** None new — existing TestPresenceLifecycle covers the flow, reorder is a logic-ordering fix
+**Status:** ✅ Resolved
