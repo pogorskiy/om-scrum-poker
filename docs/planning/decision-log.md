@@ -17,3 +17,12 @@
 **Key decisions:** Full removal of JSX and CSS rather than hiding via CSS, since the data adds no user value
 **Tests added:** None needed — removed UI-only element, existing tests pass
 **Status:** ✅ Resolved
+
+## 2026-04-08 — Race condition on disconnect: broadcast after UnregisterClient
+
+**Problem:** UnregisterClient removed client before setting status to "disconnected", allowing stale "active" in room_state
+**Solution:** Reorder: set status + broadcast before UnregisterClient
+**Agents involved:** backend
+**Key decisions:** Simple reorder preferred over new atomic method — KISS principle
+**Tests added:** None new — existing TestPresenceLifecycle covers the flow, reorder is a logic-ordering fix
+**Status:** ✅ Resolved
