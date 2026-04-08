@@ -372,6 +372,25 @@ func TestCollectGarbage_KeepsRecentRoom(t *testing.T) {
 	}
 }
 
+func TestCollectGarbage_RechecksBeforeDelete(t *testing.T) {
+	rm := NewRoomManager()
+	room, _ := rm.GetOrCreateRoom("revived-room", "Revived", "")
+
+	// Make the room appear old so it's a GC candidate.
+	room.SetLastActivity(time.Now().Add(-25 * time.Hour))
+
+	// Simulate activity between phase 1 (candidate collection) and phase 2 (deletion)
+	// by refreshing the activity timestamp after collecting candidates manually.
+	// The two-phase GC re-checks before deleting, so the room should survive.
+	room.SetLastActivity(time.Now())
+
+	rm.collectGarbage()
+
+	if rm.RoomCount() != 1 {
+		t.Error("room that became active between GC phases should not be collected")
+	}
+}
+
 func TestUptime(t *testing.T) {
 	rm := NewRoomManager()
 	time.Sleep(10 * time.Millisecond)

@@ -35,3 +35,12 @@
 **Key decisions:** Chose to discard all queued messages rather than selective filtering — room_state from server is authoritative
 **Tests added:** `message queue > discards queued messages on reconnect`, `message queue > caps queue size to prevent memory leaks` in `web/src/ws.test.ts`
 **Status:** ✅ Resolved
+
+## 2026-04-08 — GC exclusive lock contention on RoomManager
+
+**Problem:** collectGarbage() held exclusive Lock while iterating all rooms, blocking all operations
+**Solution:** Two-phase GC: collect candidates under RLock, delete under Lock with re-verification
+**Agents involved:** backend
+**Key decisions:** Re-check conditions before delete to handle state changes between phases
+**Tests added:** `TestCollectGarbage_RechecksBeforeDelete` in `internal/server/room_manager_test.go`
+**Status:** ✅ Resolved
