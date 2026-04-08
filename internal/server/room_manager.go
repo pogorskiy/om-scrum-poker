@@ -51,11 +51,30 @@ func (rm *RoomManager) StartGC() func() {
 }
 
 func (rm *RoomManager) collectGarbage() {
+	// Phase 1: collect candidates under read lock
+	rm.mu.RLock()
+	now := time.Now()
+	var candidates []string
+	for id, room := range rm.rooms {
+		clients := rm.clients[id]
+		if len(clients) == 0 && now.Sub(room.GetLastActivity()) > roomExpiry {
+			candidates = append(candidates, id)
+		}
+	}
+	rm.mu.RUnlock()
+
+	if len(candidates) == 0 {
+		return
+	}
+
+	// Phase 2: delete each candidate under write lock with re-check
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
-
-	now := time.Now()
-	for id, room := range rm.rooms {
+	for _, id := range candidates {
+		room, ok := rm.rooms[id]
+		if !ok {
+			continue
+		}
 		clients := rm.clients[id]
 		if len(clients) == 0 && now.Sub(room.GetLastActivity()) > roomExpiry {
 			delete(rm.rooms, id)
