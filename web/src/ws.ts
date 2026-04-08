@@ -30,6 +30,7 @@ let reconnectStartTime = 0;
 let currentRoomId = '';
 let isFirstRoomState = true;
 const messageQueue: ClientMessage[] = [];
+const MAX_QUEUE_SIZE = 20;
 
 const MAX_RECONNECT_DELAY = 10000;
 const BASE_DELAY = 500;
@@ -41,20 +42,12 @@ function buildWsUrl(roomId: string): string {
   return `${proto}//${window.location.host}/ws/${roomId}`;
 }
 
-// Send a message, queue if not connected
+// Send a message, queue if not connected (capped to prevent memory leaks)
 export function send(msg: ClientMessage): void {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(msg));
-  } else {
+  } else if (messageQueue.length < MAX_QUEUE_SIZE) {
     messageQueue.push(msg);
-  }
-}
-
-// Flush queued messages after reconnect
-function flushQueue(): void {
-  while (messageQueue.length > 0) {
-    const msg = messageQueue.shift()!;
-    socket?.send(JSON.stringify(msg));
   }
 }
 
@@ -340,14 +333,15 @@ export function connect(roomId: string): void {
     reconnectAttempt = 0;
     reconnectInfo.value = { attempt: 0, maxReached: false };
 
+    // Discard stale queued messages — room_state from server will restore current state
+    messageQueue.length = 0;
+
     // Send join message with a display name derived from the roomId
     const roomName = generateRoomName(currentRoomId);
     send({
       type: 'join',
       payload: { sessionId: sessionId.value, userName: userName.value, roomName, role: userRole.value },
     });
-
-    flushQueue();
   };
 
   socket.onmessage = handleMessage;
