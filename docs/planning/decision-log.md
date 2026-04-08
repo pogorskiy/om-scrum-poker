@@ -80,3 +80,12 @@
 **Key decisions:** JoinedAt not updated on rejoin to preserve original join order
 **Tests added:** Updated `TestBuildRoomState_WithParticipants` in `room_manager_test.go`
 **Status:** ✅ Resolved
+
+## 2026-04-08 — Missing roomName sanitization on server
+
+**Problem:** roomName was not passed through sanitizeName() and was truncated by byte count, allowing zalgo text and potentially splitting multi-byte characters
+**Solution:** Apply sanitizeName() to roomName in NewRoom, switch truncation from bytes to runes
+**Agents involved:** backend
+**Key decisions:** Reuse existing sanitizeName() for consistency with userName sanitization
+**Tests added:** `TestNewRoom/zalgo_text_sanitized`, updated `long_name_truncated` test in `room_test.go`
+**Status:** ✅ Resolved
