@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -628,10 +629,10 @@ func clientIP(r *http.Request, trustProxy bool) string {
 			return xri
 		}
 	}
-	// Strip port from RemoteAddr.
-	addr := r.RemoteAddr
-	if idx := strings.LastIndex(addr, ":"); idx != -1 {
-		return addr[:idx]
+	// Strip port from RemoteAddr. net.SplitHostPort handles IPv6 bracket notation.
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
 	}
-	return addr
+	return host
 }
