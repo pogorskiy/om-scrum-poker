@@ -24,7 +24,7 @@ class MockWebSocket {
 vi.stubGlobal('WebSocket', MockWebSocket);
 
 // Import after mocking WebSocket
-import { connect, disconnect, retry, generateRoomName } from './ws';
+import { connect, disconnect, retry, generateRoomName, send } from './ws';
 
 /** Get the most recently created WebSocket instance */
 function latestWs(): MockWebSocket {
@@ -197,6 +197,51 @@ describe('ws.ts reconnect logic', () => {
 
     const lostToast = toasts.value.find((t) => t.message.includes('Connection lost'));
     expect(lostToast).toBeUndefined();
+  });
+});
+
+describe('message queue', () => {
+  it('discards queued messages on reconnect', () => {
+    connect('test-room');
+    const ws1 = latestWs();
+    ws1.onopen?.(new Event('open'));
+
+    // Simulate disconnect
+    ws1.onclose?.({} as CloseEvent);
+
+    // Queue messages while disconnected
+    send({ type: 'vote', payload: { value: '5' } });
+    send({ type: 'vote', payload: { value: '8' } });
+
+    // Trigger reconnect
+    vi.advanceTimersByTime(1500);
+    const ws2 = latestWs();
+    ws2.onopen?.(new Event('open'));
+
+    // Only the join message should be sent, no stale queued messages
+    const sentMessages = ws2.send.mock.calls.map((call: string[]) => JSON.parse(call[0]));
+    expect(sentMessages).toHaveLength(1);
+    expect(sentMessages[0].type).toBe('join');
+  });
+
+  it('caps queue size to prevent memory leaks', () => {
+    connect('test-room');
+    const ws = latestWs();
+    // Do not open — messages go to queue
+    ws.readyState = MockWebSocket.CLOSED;
+
+    // Send more messages than the cap
+    for (let i = 0; i < 30; i++) {
+      send({ type: 'vote', payload: { value: String(i) } });
+    }
+
+    // Now open — queue should have been cleared, only join sent
+    ws.readyState = MockWebSocket.OPEN;
+    ws.onopen?.(new Event('open'));
+    const sentMessages = ws.send.mock.calls.map((call: string[]) => JSON.parse(call[0]));
+    // Only the join message (queue was cleared on open)
+    expect(sentMessages).toHaveLength(1);
+    expect(sentMessages[0].type).toBe('join');
   });
 });
 
