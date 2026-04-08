@@ -143,12 +143,29 @@ func (r *Room) Lock() { r.mu.Lock() }
 // Unlock releases the room mutex.
 func (r *Room) Unlock() { r.mu.Unlock() }
 
-// sanitizeName removes control characters, invisible Unicode, and zero-width
-// characters from a display name. Normal spaces (U+0020) are preserved.
+// maxCombiningMarks limits consecutive combining marks per base character
+// to prevent zalgo text while allowing normal diacritics.
+const maxCombiningMarks = 3
+
+// sanitizeName removes control characters, invisible Unicode, zero-width
+// characters, and excessive combining marks from a display name.
+// Normal spaces (U+0020) are preserved.
 func sanitizeName(name string) string {
 	name = strings.TrimSpace(name)
 	var b strings.Builder
+	combiningCount := 0
 	for _, r := range name {
+		// Limit consecutive combining marks (prevents zalgo text).
+		if unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Me, r) {
+			combiningCount++
+			if combiningCount > maxCombiningMarks {
+				continue
+			}
+			b.WriteRune(r)
+			continue
+		}
+		combiningCount = 0
+
 		// Keep normal printable characters (including space U+0020).
 		if r == ' ' {
 			b.WriteRune(r)
@@ -188,8 +205,8 @@ func (r *Room) Join(sessionID, name, role string) (*Participant, bool, error) {
 	if name == "" {
 		return nil, false, fmt.Errorf("invalid_name: name cannot be empty")
 	}
-	if len(name) > MaxParticipantName {
-		name = name[:MaxParticipantName]
+	if runes := []rune(name); len(runes) > MaxParticipantName {
+		name = string(runes[:MaxParticipantName])
 	}
 	if role == "" {
 		role = "voter"
@@ -324,8 +341,8 @@ func (r *Room) UpdateName(sessionID, name string) error {
 	if name == "" {
 		return fmt.Errorf("invalid_name: name cannot be empty")
 	}
-	if len(name) > MaxParticipantName {
-		name = name[:MaxParticipantName]
+	if runes := []rune(name); len(runes) > MaxParticipantName {
+		name = string(runes[:MaxParticipantName])
 	}
 	p, ok := r.Participants[sessionID]
 	if !ok {

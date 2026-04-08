@@ -309,11 +309,57 @@ func TestUpdateName_LongName(t *testing.T) {
 		t.Fatalf("UpdateName() unexpected error: %v", err)
 	}
 	got := r.Participants["s1"].Name
-	if len(got) != MaxParticipantName {
-		t.Errorf("expected name length %d, got %d", MaxParticipantName, len(got))
+	runes := []rune(got)
+	if len(runes) != MaxParticipantName {
+		t.Errorf("expected name length %d runes, got %d", MaxParticipantName, len(runes))
 	}
-	if got != longName[:MaxParticipantName] {
-		t.Errorf("expected truncated name %q, got %q", longName[:MaxParticipantName], got)
+	expected := string([]rune(longName)[:MaxParticipantName])
+	if got != expected {
+		t.Errorf("expected truncated name %q, got %q", expected, got)
+	}
+}
+
+func TestUpdateName_EmojiTruncation(t *testing.T) {
+	r, _ := NewRoom("room1", "Test", "")
+	r.Join("s1", "Alice", "")
+
+	// 31 runes: emoji should not be split mid-character.
+	emojiName := "Hello🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉"
+	err := r.UpdateName("s1", emojiName)
+	if err != nil {
+		t.Fatalf("UpdateName() unexpected error: %v", err)
+	}
+	got := r.Participants["s1"].Name
+	runes := []rune(got)
+	if len(runes) > MaxParticipantName {
+		t.Errorf("expected at most %d runes, got %d", MaxParticipantName, len(runes))
+	}
+	// Verify the result is valid UTF-8 (Go strings are valid UTF-8 by construction
+	// when built from []rune, but let's be explicit).
+	for i, r := range got {
+		if r == '\uFFFD' {
+			t.Errorf("invalid UTF-8 at byte offset %d", i)
+		}
+	}
+}
+
+func TestSanitizeName_ZalgoText(t *testing.T) {
+	// Zalgo text: base char + many combining marks.
+	zalgo := "t\u0300\u0301\u0302\u0303\u0304\u0305e\u0300\u0301\u0302\u0303\u0304\u0305s\u0300\u0301\u0302\u0303\u0304\u0305t"
+	got := sanitizeName(zalgo)
+
+	// Each base char should keep at most maxCombiningMarks combining marks.
+	combiningCount := 0
+	for _, r := range got {
+		if r >= 0x0300 && r <= 0x036F { // combining diacritical marks block
+			combiningCount++
+		} else {
+			combiningCount = 0
+		}
+		if combiningCount > maxCombiningMarks {
+			t.Errorf("too many consecutive combining marks in sanitized name %q", got)
+			break
+		}
 	}
 }
 
