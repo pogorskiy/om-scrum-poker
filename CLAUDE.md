@@ -83,3 +83,119 @@ Full protocol spec: [docs/planning/04-architecture.md](docs/planning/04-architec
 - Frontend: TypeScript strict mode, PascalCase component dirs, BEM CSS naming
 - Code comments in English, user-facing strings in English
 - KISS principle: minimal dependencies, minimal abstractions
+
+---
+
+## Task Workflow
+
+When given a problem to solve, follow this process strictly. Do not cut corners — thoroughness over speed.
+
+### 1. Validate the Problem
+- Read the relevant source code to confirm the problem still exists
+- Check `docs/planning/decision-log.md` — maybe it was already resolved
+- If the problem is not applicable or already fixed, **report back and move to the next problem**
+- Do not start implementation until the problem is confirmed in code
+
+### 2. Plan the Solution
+- Analyze the root cause thoroughly
+- Propose at least two approaches with explicit pros and cons
+- Choose the best approach and document **why** before writing any code
+- If the change is non-trivial, write a brief design note in `docs/planning/`
+
+### 3. Branch Strategy
+- Create a feature branch: `feat/<short-description>` or `fix/<short-description>`
+- All agent work happens on this branch, never directly on `main`
+
+### 4. Implement with Agent Teams
+Spawn separate agents for backend and frontend work. They work in parallel.
+
+**Backend Agent (Task):**
+- Scope: `cmd/`, `internal/`, `web/embed.go`, `go.mod`
+- Must write comprehensive unit tests for all new/changed code
+- Must run `go test ./...` and confirm all tests pass
+- Must follow Go stdlib conventions, `gofmt` formatting
+
+**Frontend Agent (Task):**
+- Scope: `web/src/`, `web/package.json`, `web/vite.config.ts`
+- Must write comprehensive unit tests for all new/changed components
+- Must run `cd web && npm test` and confirm all tests pass
+- Must follow TypeScript strict mode, PascalCase components, BEM CSS
+
+Each agent must produce a summary of changes when done.
+
+### 5. Multi-Agent Review Process
+This is mandatory. Do not skip any step.
+
+**Step A — Cross-review between agents:**
+- The backend agent reviews the frontend agent's changes for API contract consistency
+- The frontend agent reviews the backend agent's changes for WebSocket protocol compatibility
+- Each agent lists any concerns or inconsistencies found
+
+**Step B — Lead Architect review (you, the orchestrator):**
+- Review ALL changes holistically as a senior architect
+- Check for:
+  - Consistency between frontend and backend contracts
+  - Edge cases and error handling
+  - Test coverage completeness
+  - No regressions in existing functionality
+  - Adherence to UX Rules (e.g., no participant list re-sorting)
+  - Code style and conventions compliance
+- Run the full build: `make build`
+- Run all tests: `go test ./...` and `cd web && npm test`
+
+**Step C — Accept or reject:**
+- If review passes → proceed to commit
+- If issues found → revert the problematic changes, provide specific feedback, and **re-run the responsible agent with the review notes included**
+- Repeat until the review passes
+
+### 6. Commit
+- Commit messages in English, conventional commits format
+- Format: `type(scope): short description`
+- Examples:
+  - `fix(ws): handle timer state loss on reconnect`
+  - `feat(web): add vote retraction button`
+  - `test(server): add room GC edge case coverage`
+  - `docs(planning): add ADR for timer sync approach`
+- Make atomic commits — one logical change per commit
+- Do NOT bundle unrelated changes in a single commit
+
+### 7. Architecture Artifacts
+After implementation, create or update documentation so that **future agents can work effectively**:
+
+- **Architecture Decision Records** in `docs/planning/`:
+  - What was decided and why
+  - What alternatives were considered
+  - What trade-offs were accepted
+- **Inline code comments** for any non-obvious logic, concurrency patterns, or protocol details
+- **Update this CLAUDE.md** if the change affects:
+  - Project structure
+  - WebSocket protocol (add new events)
+  - Environment variables
+  - Build commands
+  - UX rules or conventions
+
+### 8. Update Decision Log
+Append to `docs/planning/decision-log.md`:
+
+```markdown
+## [DATE] — Short title of the problem
+
+**Problem:** One-line description of the issue
+**Solution:** What was implemented
+**Agents involved:** backend / frontend / both
+**Key decisions:** Any non-obvious choices made
+**Tests added:** List of new test files or test functions
+**Status:** ✅ Resolved
+```
+
+This log prevents re-investigating already-solved problems.
+
+---
+
+## Agent Roles Reference
+
+| Role | Scope | Tests | Review responsibility |
+|------|-------|-------|-----------------------|
+| Backend Agent | `cmd/`, `internal/`, `*.go` | `go test ./...` | Reviews frontend for API consistency |
+| Frontend Agent | `web/src/`, `web/*.ts` | `npm test` | Reviews backend for WS protocol consistency |
+| Lead Architect (orchestrator) | Everything | Full build + all tests | Final approval, revert authority |
