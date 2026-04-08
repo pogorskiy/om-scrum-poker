@@ -17,3 +17,12 @@
 **Key decisions:** Full removal of JSX and CSS rather than hiding via CSS, since the data adds no user value
 **Tests added:** None needed — removed UI-only element, existing tests pass
 **Status:** ✅ Resolved
+
+## 2026-04-08 — GC exclusive lock contention on RoomManager
+
+**Problem:** collectGarbage() held exclusive Lock while iterating all rooms, blocking all operations
+**Solution:** Two-phase GC: collect candidates under RLock, delete under Lock with re-verification
+**Agents involved:** backend
+**Key decisions:** Re-check conditions before delete to handle state changes between phases
+**Tests added:** `TestCollectGarbage_RechecksBeforeDelete` in `internal/server/room_manager_test.go`
+**Status:** ✅ Resolved
