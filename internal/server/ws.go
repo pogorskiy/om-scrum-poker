@@ -98,8 +98,9 @@ func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, tracker *ConnTr
 
 		// Cleanup on disconnect.
 		client.Close()
-		manager.UnregisterClient(roomID, client)
 
+		// Set status and broadcast BEFORE unregistering so that concurrent
+		// room_state requests see "disconnected" rather than stale "active".
 		sid := client.SessionID()
 		if sid != "" {
 			room := manager.GetRoom(roomID)
@@ -119,6 +120,7 @@ func HandleWebSocket(manager *RoomManager, limiter *RateLimiter, tracker *ConnTr
 			}
 		}
 
+		manager.UnregisterClient(roomID, client)
 		conn.Close(websocket.StatusNormalClosure, "goodbye")
 	}
 }
