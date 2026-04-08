@@ -17,3 +17,12 @@
 **Key decisions:** Full removal of JSX and CSS rather than hiding via CSS, since the data adds no user value
 **Tests added:** None needed — removed UI-only element, existing tests pass
 **Status:** ✅ Resolved
+
+## 2026-04-08 — Unbounded message queue on WebSocket disconnect
+
+**Problem:** messageQueue in ws.ts grew without limits during disconnect, and flushed stale messages in bulk on reconnect risking rate limit violation
+**Solution:** Cap queue at 20 messages, clear queue on reconnect (room_state restores state), remove flushQueue function
+**Agents involved:** frontend
+**Key decisions:** Chose to discard all queued messages rather than selective filtering — room_state from server is authoritative
+**Tests added:** `message queue > discards queued messages on reconnect`, `message queue > caps queue size to prevent memory leaks` in `web/src/ws.test.ts`
+**Status:** ✅ Resolved
