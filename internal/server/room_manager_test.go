@@ -289,21 +289,21 @@ func TestBuildRoomState_WithParticipants(t *testing.T) {
 		t.Fatalf("expected 2 participants, got %d", len(state.Participants))
 	}
 
-	// Should be sorted by session ID.
-	if state.Participants[0].SessionID != "sess-a" {
-		t.Errorf("first participant = %q, want %q", state.Participants[0].SessionID, "sess-a")
+	// Should be sorted by join time (Bob joined first).
+	if state.Participants[0].SessionID != "sess-b" {
+		t.Errorf("first participant = %q, want %q (joined first)", state.Participants[0].SessionID, "sess-b")
 	}
-	if state.Participants[1].SessionID != "sess-b" {
-		t.Errorf("second participant = %q, want %q", state.Participants[1].SessionID, "sess-b")
+	if state.Participants[1].SessionID != "sess-a" {
+		t.Errorf("second participant = %q, want %q (joined second)", state.Participants[1].SessionID, "sess-a")
 	}
 
-	// Alice voted.
-	if !state.Participants[0].HasVoted {
-		t.Error("Alice should have HasVoted = true")
-	}
 	// Bob did not vote.
-	if state.Participants[1].HasVoted {
+	if state.Participants[0].HasVoted {
 		t.Error("Bob should have HasVoted = false")
+	}
+	// Alice voted.
+	if !state.Participants[1].HasVoted {
+		t.Error("Alice should have HasVoted = true")
 	}
 }
 
