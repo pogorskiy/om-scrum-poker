@@ -207,7 +207,12 @@ func TestClientIP(t *testing.T) {
 		{
 			name:       "IPv6 with port",
 			remoteAddr: "[::1]:8080",
-			want:       "[::1]",
+			want:       "::1",
+		},
+		{
+			name:       "IPv6 full address with port",
+			remoteAddr: "[2001:db8::1]:12345",
+			want:       "2001:db8::1",
 		},
 	}
 
