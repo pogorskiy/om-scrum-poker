@@ -17,3 +17,12 @@
 **Key decisions:** Full removal of JSX and CSS rather than hiding via CSS, since the data adds no user value
 **Tests added:** None needed — removed UI-only element, existing tests pass
 **Status:** ✅ Resolved
+
+## 2026-04-08 — Document timer and role WebSocket events
+
+**Problem:** 6 WebSocket events (timer, role) and several payload fields (createdBy, timer, role) missing from spec that claims to be exhaustive
+**Solution:** Added all 6 events to canonical table 4.3, full payload examples in 4.4/4.5, updated room_state and participant_joined payloads, updated CLAUDE.md
+**Agents involved:** documentation only
+**Key decisions:** Also documented the client-side timer expiration caveat (server doesn't track expiration, clock skew possible)
+**Tests added:** None — documentation-only change
+**Status:** ✅ Resolved
