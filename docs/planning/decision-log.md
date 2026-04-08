@@ -71,3 +71,12 @@
 **Key decisions:** net.SplitHostPort with fallback to raw address on error (covers no-port case)
 **Tests added:** Updated IPv6 test expectation, added `IPv6 full address with port` case in `handler_test.go`
 **Status:** ✅ Resolved
+
+## 2026-04-08 — Participant list sorted by sessionId instead of join time
+
+**Problem:** BuildRoomState sorted participants by random hex sessionId, contradicting documented "order is by join time"
+**Solution:** Added JoinedAt field to Participant (set on first join, preserved on rejoin), sort by JoinedAt in BuildRoomState with sessionId as tiebreaker
+**Agents involved:** backend
+**Key decisions:** JoinedAt not updated on rejoin to preserve original join order
+**Tests added:** Updated `TestBuildRoomState_WithParticipants` in `room_manager_test.go`
+**Status:** ✅ Resolved

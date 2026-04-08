@@ -246,9 +246,14 @@ func (rm *RoomManager) BuildRoomState(room *domain.Room) RoomStatePayload {
 			Role:      p.Role,
 		})
 	}
-	// Sort for deterministic output.
+	// Sort by join time (stable order, not by random sessionId).
 	sort.Slice(participants, func(i, j int) bool {
-		return participants[i].SessionID < participants[j].SessionID
+		ti := room.Participants[participants[i].SessionID].JoinedAt
+		tj := room.Participants[participants[j].SessionID].JoinedAt
+		if ti.Equal(tj) {
+			return participants[i].SessionID < participants[j].SessionID
+		}
+		return ti.Before(tj)
 	})
 
 	state := RoomStatePayload{

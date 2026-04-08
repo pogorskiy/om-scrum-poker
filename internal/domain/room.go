@@ -81,6 +81,7 @@ type Participant struct {
 	Status    string // "active", "idle", "disconnected"
 	Role      string // "voter" or "observer"
 	LastPing  time.Time
+	JoinedAt  time.Time
 }
 
 // Room holds the state for a single poker session.
@@ -233,13 +234,15 @@ func (r *Room) Join(sessionID, name, role string) (*Participant, bool, error) {
 		return nil, false, fmt.Errorf("room_full: room has reached maximum capacity")
 	}
 
+	now := time.Now()
 	p := &Participant{
 		SessionID: sessionID,
 		Name:      name,
 		Vote:      "",
 		Status:    "active",
 		Role:      role,
-		LastPing:  time.Now(),
+		LastPing:  now,
+		JoinedAt:  now,
 	}
 	r.Participants[sessionID] = p
 	r.TouchActivity()
