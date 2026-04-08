@@ -17,3 +17,12 @@
 **Key decisions:** Full removal of JSX and CSS rather than hiding via CSS, since the data adds no user value
 **Tests added:** None needed — removed UI-only element, existing tests pass
 **Status:** ✅ Resolved
+
+## 2026-04-08 — Missing roomName sanitization on server
+
+**Problem:** roomName was not passed through sanitizeName() and was truncated by byte count, allowing zalgo text and potentially splitting multi-byte characters
+**Solution:** Apply sanitizeName() to roomName in NewRoom, switch truncation from bytes to runes
+**Agents involved:** backend
+**Key decisions:** Reuse existing sanitizeName() for consistency with userName sanitization
+**Tests added:** `TestNewRoom/zalgo_text_sanitized`, updated `long_name_truncated` test in `room_test.go`
+**Status:** ✅ Resolved
