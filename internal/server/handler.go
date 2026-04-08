@@ -50,7 +50,7 @@ func NewServer(config Config, manager *RoomManager, limiter *RateLimiter, tracke
 	addr := fmt.Sprintf("%s:%s", config.Host, config.Port)
 	return &http.Server{
 		Addr:              addr,
-		Handler:           mux,
+		Handler:           securityHeaders(mux),
 		IdleTimeout:       60 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
@@ -197,6 +197,16 @@ const placeholderHTML = `<!DOCTYPE html>
     </div>
 </body>
 </html>`
+
+// securityHeaders adds baseline HTTP security headers to all responses.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "same-origin")
+		next.ServeHTTP(w, r)
+	})
+}
 
 // LogMiddleware is a simple request logging middleware (unused but available).
 func LogMiddleware(next http.Handler) http.Handler {
