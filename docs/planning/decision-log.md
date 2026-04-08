@@ -17,3 +17,12 @@
 **Key decisions:** Full removal of JSX and CSS rather than hiding via CSS, since the data adds no user value
 **Tests added:** None needed — removed UI-only element, existing tests pass
 **Status:** ✅ Resolved
+
+## 2026-04-08 — IPv6 bracket notation in clientIP
+
+**Problem:** clientIP used strings.LastIndex(":") which left brackets on IPv6 addresses ("[::1]" instead of "::1")
+**Solution:** Replaced with net.SplitHostPort which correctly handles IPv6 bracket notation
+**Agents involved:** backend
+**Key decisions:** net.SplitHostPort with fallback to raw address on error (covers no-port case)
+**Tests added:** Updated IPv6 test expectation, added `IPv6 full address with port` case in `handler_test.go`
+**Status:** ✅ Resolved
