@@ -373,6 +373,34 @@ func TestHandleHealth_BuildTime(t *testing.T) {
 	}
 }
 
+func TestSecurityHeaders(t *testing.T) {
+	rm := NewRoomManager()
+	limiter := NewRateLimiter(DefaultRateLimitConfig())
+	var emptyFS embed.FS
+
+	srv := NewServer(Config{Host: "127.0.0.1", Port: "0"}, rm, limiter, NewConnTracker(DefaultConnTrackerConfig()), emptyFS)
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+	tests := []struct {
+		header string
+		want   string
+	}{
+		{"X-Content-Type-Options", "nosniff"},
+		{"X-Frame-Options", "DENY"},
+		{"Referrer-Policy", "same-origin"},
+	}
+	for _, tt := range tests {
+		got := resp.Header.Get(tt.header)
+		if got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.header, got, tt.want)
+		}
+	}
+}
+
 func TestHandleHealth_BuildTimeDefault(t *testing.T) {
 	rm := NewRoomManager()
 
