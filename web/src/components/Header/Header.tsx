@@ -31,12 +31,7 @@ export function Header() {
       <div class="header__left">
         <span class="header__logo">om</span>
         {state && (
-          <span class="header__room-name">
-            {state.roomName}
-            {state.createdBy && (
-              <span class="header__created-by"> by {state.createdBy}</span>
-            )}
-          </span>
+          <span class="header__room-name">{state.roomName}</span>
         )}
       </div>
       <div class="header__right">
