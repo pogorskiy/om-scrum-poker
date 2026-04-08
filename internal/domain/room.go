@@ -121,8 +121,9 @@ func NewRoom(id, name, createdBy string) (*Room, error) {
 	if id == "" {
 		return nil, fmt.Errorf("room id cannot be empty")
 	}
-	if len(name) > MaxRoomName {
-		name = name[:MaxRoomName]
+	name = sanitizeName(name)
+	if runes := []rune(name); len(runes) > MaxRoomName {
+		name = string(runes[:MaxRoomName])
 	}
 	r := &Room{
 		ID:           id,

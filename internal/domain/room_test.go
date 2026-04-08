@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -15,8 +16,9 @@ func TestNewRoom(t *testing.T) {
 	}{
 		{"valid room", "abc123", "Sprint 42", false, 9},
 		{"empty id", "", "Sprint", true, 0},
-		{"long name truncated", "abc", string(make([]byte, 100)), false, MaxRoomName},
+		{"long name truncated", "abc", strings.Repeat("a", 100), false, MaxRoomName},
 		{"empty name ok", "abc", "", false, 0},
+		{"zalgo text sanitized", "abc", "t\u0300\u0300\u0300\u0300\u0300est", false, 10}, // 3 of 5 combining marks kept; len counts bytes: 1 + 3*2 + 1 + 1 + 1 = 10
 	}
 
 	for _, tt := range tests {
