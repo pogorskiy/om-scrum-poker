@@ -17,3 +17,12 @@
 **Key decisions:** Full removal of JSX and CSS rather than hiding via CSS, since the data adds no user value
 **Tests added:** None needed — removed UI-only element, existing tests pass
 **Status:** ✅ Resolved
+
+## 2026-04-08 — Missing HTTP security headers
+
+**Problem:** No X-Content-Type-Options, X-Frame-Options, Referrer-Policy on HTTP responses
+**Solution:** Added securityHeaders middleware wrapping mux in NewServer
+**Agents involved:** backend
+**Key decisions:** CORS headers not added — SPA is same-origin, WS already checks origin separately
+**Tests added:** `TestSecurityHeaders` in `internal/server/handler_test.go`
+**Status:** ✅ Resolved
