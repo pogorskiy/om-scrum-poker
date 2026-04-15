@@ -75,7 +75,9 @@
 }
 
 .participant-card__vote-face--front {
-  /* Default: faces the viewer */
+  /* Firefox requires an explicit 3D transform for backface-visibility to hide
+     this face when the flipper rotates; without it the checkmark stays visible. */
+  transform: rotateY(0deg);
 }
 
 .participant-card__vote-face--back {

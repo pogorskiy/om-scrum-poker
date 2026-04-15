@@ -89,3 +89,12 @@
 **Key decisions:** Reuse existing sanitizeName() for consistency with userName sanitization
 **Tests added:** `TestNewRoom/zalgo_text_sanitized`, updated `long_name_truncated` test in `room_test.go`
 **Status:** ✅ Resolved
+
+## 2026-04-15 — Firefox: green checkmarks persist after vote reveal
+
+**Problem:** In Firefox, the green "✓" on voted participant cards stayed visible after reveal; the flip animation did not hide the front face via `backface-visibility: hidden`.
+**Solution:** Added explicit `transform: rotateY(0deg)` to `.participant-card__vote-face--front` in `ParticipantCard.css`. Firefox only honors `backface-visibility: hidden` on 3D-transformed elements; without a self-transform it treated the front face as always visible.
+**Agents involved:** frontend
+**Key decisions:** Kept `perspective()` inline on the flipper transform (works in all browsers) rather than restructuring the 3D scene — one-line CSS fix per KISS.
+**Tests added:** None — purely a CSS browser-quirk fix, no logic change. Existing ParticipantCard tests still pass.
+**Status:** ✅ Resolved
